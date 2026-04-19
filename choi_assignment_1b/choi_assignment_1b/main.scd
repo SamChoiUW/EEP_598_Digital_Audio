@@ -32,6 +32,7 @@ If we haven't already, we'll want to load functions, data and synthDefs.
 (Document.current.dir +/+ "data.scd").load;
 (Document.current.dir +/+ "synthDefs.scd").load;
 
+s.boot;
 
 ///////////////// set RT/NRT environment variables ///////////////
 
@@ -117,7 +118,16 @@ at time ~bellStarttime + 20.0
 
 use quadrature oscillator synth: \dxarts46x_percSinOscQ
 */
-
+~bellFreq = 178.57;
+~myBellScoringFuncs[\simpleBell].value(
+	~mainScore,
+	~myRissetBellPNotes[\dxarts46x_percSinOscQ],  // quadrature oscillator pairs per partial
+	~myBellData[\rissetBell_1700],
+	~bellStarttime + 20.0,
+	~bellDur,
+	~bellGain + 20.0,
+	freq: ~bellFreq
+);
 /*
 update ~bellFreq to 459.8
 update ~bellDur as per Slaymaker & Meeker, Table II
@@ -127,7 +137,17 @@ at time ~bellStarttime + 30.0
 
 use quadrature oscillator synth: \dxarts46x_percSinOscQ
 */
-
+~bellFreq = 459.8;
+~bellDur = 42.8;
+~myBellScoringFuncs[\simpleBell].value(
+	~mainScore,
+	~myRissetBellPNotes[\dxarts46x_percSinOscQ],  // quadrature oscillator pairs per partial
+	~myBellData['germantown_a#4'],
+	~bellStarttime + 30.0,
+	~bellDur,
+	~bellGain + 20.0,
+	freq: ~bellFreq
+);
 /*
 update ~bellFreq to 462.7
 update ~bellDur as per Slaymaker & Meeker, Table VI
@@ -138,9 +158,17 @@ at time ~bellStarttime + 40.0
 use quadrature oscillator synth: \dxarts46x_percSinOscQ
 */
 
-
-
-
+~bellFreq = 462.7;
+~bellDur = 42.9;
+~myBellScoringFuncs[\simpleBell].value(
+	~mainScore,
+	~myRissetBellPNotes[\dxarts46x_percSinOscQ],  // quadrature oscillator pairs per partial
+	~myBellData['valley_forge_a#4'],
+	~bellStarttime + 10.0,
+	~bellDur,
+	~bellGain + 30.0,
+	freq: ~bellFreq
+);
 ///////////////// render the main score //////////////////
 
 

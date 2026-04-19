@@ -91,7 +91,22 @@ freq = 459.8
 13 partials specified, add at least 2 more beating partials for liveliness --> 15+ partials total!!
 */
 // ~myBellData['germantown_a#4'] =
+~myBellData['germantown_a#4'] = Dictionary.newFrom([
+    \ratios,
+    [ 0.499, 0.499, 0.995, 0.995, 1.179, 1.507, 1.989, 2.496, 2.962, 3.564, 4.103, 4.686, 5.351, 5.795, 6.679 ],  // subjectively
 
+    \beatFreqs,
+    [ 0.0, -0.1422, 0.0 ,0.2578, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],  // subjectively
+
+    \gains,
+    [ -10.0, -10.0, 0.0, 0.0, 3.0, -25.0, 16.0, -12.0, 0.0, -15.0, 2.0, -2.0, 1.0, -2.0, 4.0 ],
+
+    \durScales,
+    [ 1.0, 1.0, 0.34, 0.34, 0.29, 0.10, 0.07, 0.09, 0.11, 0.06, 0.09, 0.03, 0.15, 0.04, 0.08 ],
+
+    \names,
+    ["hum","hum (beating)", "prime", "prime (beating)", "tierce", "nominal", "deciem", "duodeciem", "double deciem", nil, nil, nil, nil,nil,nil]
+]);
 /*
 Slaymaker, F. H., & Meeker, W. F. (1954). Measurements of the Tonal Characteristics of Carillon Bells.
 The Journal of the Acoustical Society of America, 26(4), 515–522.
@@ -102,3 +117,19 @@ freq = 462.7
 12 partials specified, add at least 2 more beating partials --> 14+ partials total!!
 */
 // ~myBellData['valley_forge_a#4'] =
+
+~myBellData['valley_forge_a#4'] = Dictionary.newFrom([
+    \ratios,
+	[ 0.502, 0.502, 1.000, 1.000, 1.196, 1.503, 2.006, 2.438, 3.019, 3.289, 4.176, 5.443, 6.798, 8.220 ],
+    \beatFreqs,
+    [ 0.0, -0.1422, 0.0 ,0.2578, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],  // subjectively
+
+    \gains,
+	[ 3.0, 3.0, 0.0, 0.0, 2.0, -16.0, 11.0, 13.0, 16.0, 1.0, 6.0, 8.0, 6.0, 2.0 ],
+
+    \durScales,
+	[ 1.00, 1.00, 0.275, 0.275, 0.368, 0.128, 0.0746, 0.0147, 0.117, 0.0699, 0.0932, 0.0874, 0.0823, 0.0667 ],
+
+    \names,
+	[ "hum", "hum (beating)", "prime", "prime (beating)", "tierce", "nominal", "deciem", "duodeciem", "double deciem", nil, nil, nil, nil, nil ]
+]);
