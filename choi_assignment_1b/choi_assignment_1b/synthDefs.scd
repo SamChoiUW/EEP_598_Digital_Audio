@@ -1,5 +1,5 @@
 /*
-Project Title: myLasName Assignment 1b
+Project Title: Choi Assignment 1b
 Date: Sun Mar 29 16:35:26 2026
 
 EE P 598a: Advanced Topics In Electrical And Computer Engineering (Introduction to Digital Audio)
