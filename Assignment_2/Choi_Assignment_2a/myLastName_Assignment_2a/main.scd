@@ -29,7 +29,8 @@ If we haven't already, we'll want to load functions, data and synthDefs.
 */
 
 
-s.boot;
+// s.boot;
+// s.quit;
 
 
 (Document.current.dir +/+ "synthDefs.scd").load;
@@ -39,6 +40,8 @@ s.boot;
 
 ~sampleRate = s.sampleRate.isNil.if({   // set sampleRate
     "% sampleRate is %. Try booting rt server.".format(s, s.sampleRate).warn;
+	"setting SR to 48000".postln;
+	48000
 }, {
     s.sampleRate.asInteger
 });

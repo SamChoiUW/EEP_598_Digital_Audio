@@ -23,15 +23,14 @@ HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectSHARCWTsWPs::")
 // -------------------------
 // add synthDefs
  ~myProtoNotes.add(
-
-    \synthDef_assignment1A -> CtkSynthDef.new(
+    SynthDef.new(
 		\synthDef_assignment1A,  // name - as Symbol
 
-        { |dur = 1.0, gain = -14.0, riseTime = 0.1, decayTime = 0.1, freq = 440.0, phase = 0, noiseFreq = 0.5, panAngle = 0, outBus = 0|  // UGen graph function
+        { |dur = 1.0, gain = -14.0, riseTime = 0.1, decayTime = 0.1, freq = 440.0, phase = 0, noiseFreq = 0.5, panAngle = 0, bufnum = 0, outBus = 0|  // UGen graph function
 
             // vars for UGens
             var ampEnvSig;
-            var sinSig;
+            var wtSig;
             var panSig;
             var outSig;
 
@@ -52,9 +51,9 @@ HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectSHARCWTsWPs::")
                 doneAction: Done.freeSelf
             );  // EnvGen (control rate)
 
+			// wavetable
             // oscillator
-
-			sinSig = SinOsc.ar(freq, phase, ampEnvSig) * ampNoise;
+			wtSig = Osc.ar(bufBum, freq, phase, ampEnvSig) * ampNoise
 
             // stereo imager
             panSig = Pan2.ar(sinSig, pos);  // Pan2 (audio rate)
