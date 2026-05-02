@@ -31,6 +31,7 @@ HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectSHARCWTsWPs::")
             // vars for UGens
             var ampEnvSig;
             var wtSig;
+            var sinSig;
             var panSig;
             var outSig;
 
