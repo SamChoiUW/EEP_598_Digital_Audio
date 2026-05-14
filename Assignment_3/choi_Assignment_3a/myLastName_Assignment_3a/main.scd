@@ -1,5 +1,5 @@
 /*
-Project Title: Assignment 3a
+Project Title: Choi Assignment 3a
 Date: Mon May  4 13:52:09 2026
 
 EE P 598a: Advanced Topics In Electrical And Computer Engineering (Introduction to Digital Audio)
