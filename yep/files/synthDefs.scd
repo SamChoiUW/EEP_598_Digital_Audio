@@ -1,6 +1,6 @@
 /*
-Project Title: myLastName_Assignment_1a
-Date: Wed Apr 29 2026
+Project Title: myLastName_Assignment_2b
+Date: Wed Apr 15 17:21:21 2026
 
 DXARTS 46x: Sound Series Tutorial
 Authors: Joseph Anderson, Wei Yang, et al.
@@ -9,37 +9,9 @@ License: GPLv3 (https://www.gnu.org/licenses/gpl-3.0.en.html)
 */
 
 /*
-Problem 1a: Single Sinusoid Additive Synthesis — String Ensemble Model
+For examples see:
 
-SynthDef design notes
-─────────────────────
-• \addStringSingle  : core partial synthDef.
-  One instance per partial, per note. The scoring function spawns N of
-  these (N = number of SHARC partials) for each scale degree.
-
-• Basis function: chosen via ~myData[\basisFunc]; the scoring function
-  selects among the alternatives from additiveBasisFuncs:
-    \pure             → SinOsc (reference)
-    \detuneStereoBeat → detune in stereo (beats between L/R copies)
-    \ringNoiseMono    → ring-mod with LFNoise2 in mono
-    \fmNoiseStereo    → FM deviation with LFNoise2 in stereo
-
-• Realism chain (signal path for each partial):
-    1. Portamento   : Lag.kr on fundamental freq argument
-    2. Rand dev.    : LFNoise2 FM on instantaneous partial freq
-    3. Vibrato      : SinOsc LFO on freq; depth ramped via Env (onset)
-    4. Basis osc    : one of the four alternatives above
-    5. Tremolo      : LFNoise2 amplitude modulation
-    6. Amp env      : per-partial ADSR with frequency-dependent sustain
-    7. Pan          : slight per-partial spread for ensemble width
-
-• Frequency-dependent decay (problem requirement):
-    τ_k = sustain * (1 − decayExp * (k−1) / (maxK−1))
-    k=1 (fundamental) gets full sustain; k=maxK gets reduced sustain.
-    The scoring function computes τ_k and passes it as the `sustain` arg.
-
-• All musically meaningful parameters are exposed as CtkNote arguments
-  so the scoring function has full per-note, per-partial control.
+HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectSHARCWTsWPs::")
 */
 
 
@@ -52,190 +24,133 @@ SynthDef design notes
 // -------------------------
 // add synthDefs
 
-// ────────────────────────────────────────────────────────────────────────────
-// Basis function data — mirrors the additiveBasisFuncs.scd examples.
-// Each entry is a Function of (freq, phase, amp, extraArgs) → stereo signal.
-// The synthDef selects one at instantiation via the \basisFunc arg (selector).
-// ────────────────────────────────────────────────────────────────────────────
-~myBasisFuncData = Dictionary.new;
+/*
+\synthDef_msWT — Multi-Segment Wavetable SynthDef
+--------------------------------------------------
+Models the saxophone cresc-decresc tone via three spectral wavetables
+(pp onset, ff peak, pp decay) interpolated continuously by LinSelectX.
 
-// 1. Pure sinusoid (reference)
-~myBasisFuncData[\pure] = { |freq, phase = 0.0, amp = 1.0,
-                               beats = 0.55, noiseFreq = 1.0, detuneHz = 5.0|
-    SinOsc.ar(freq, phase, amp).dup(2)
-};
+Two independent multi-segment envelopes (cf. D&J Fig 5.12 / 5.13):
 
-// 2. Sinusoid – detune in stereo (beating between L & R)
-//    From additiveBasisFuncs: "sinusoid wave – detune in stereo"
-~myBasisFuncData[\detuneStereoBeat] = { |freq, phase = 0.0, amp = 1.0,
-                                          beats = 0.55, noiseFreq = 1.0, detuneHz = 5.0|
-    var freqLR = freq + (beats / 2 * [1, -1]);
-    SinOsc.ar(freqLR, phase, amp)   // returns stereo array
-};
+  ampEnv     — overall loudness arc: soft → loud → soft
+               uses \sin curve for a natural S-curve swell
 
-// 3. Sinusoid – ringmod with LFNoise2 in mono → duped to stereo
-//    From additiveBasisFuncs: "sinusoid wave – ringmod w/ noise in mono"
-~myBasisFuncData[\ringNoiseMono] = { |freq, phase = 0.0, amp = 1.0,
-                                       beats = 0.55, noiseFreq = 1.0, detuneHz = 5.0|
-    var modNoise = LFNoise2.ar(noiseFreq / 20.0).range(-12.dbamp, 0.dbamp);
-    (SinOsc.ar(freq, phase, amp) * modNoise).dup(2)
-};
+  wtSelEnv   — wavetable selection: sweeps 0.0 → 1.0 → 2.0
+               driving LinSelectX between buf0 (pp), buf1 (ff), buf2 (pp)
+               offset from ampEnv by wtSelLead seconds so spectrum
+               brightens just before the loudness peak — matching
+               real saxophone behaviour
 
-// 4. Sinusoid – FM deviation with LFNoise2 in stereo
-//    From additiveBasisFuncs: "sinusoid wave – FM mod w/ noise in stereo"
-~myBasisFuncData[\fmNoiseStereo] = { |freq, phase = 0.0, amp = 1.0,
-                                       beats = 0.55, noiseFreq = 1.0, detuneHz = 5.0|
-    var modNoise = LFNoise2.ar(noiseFreq.dup(2), detuneHz);
-    SinOsc.ar(freq + modNoise, [phase, phase + 0.5pi], amp)
-};
+Realism (cf. D&J Fig 5.13 / Vibrato UGen):
+  Vibrato    — Vibrato UGen, delayed onset + slow fade-in
+  pitchNoise — LFNoise2.kr slow random deviation (liveness)
 
+Arguments:
+  dur             total note duration (seconds)
+  gain            overall amplitude (dB)
+  freq            playback frequency (Hz)
+  fundamentalFreq reference frequency of the wavetables (Hz)
+  riseTime        amplitude attack (seconds)
+  decayTime       amplitude release (seconds)
+  crescTime       time from note start to ff peak (seconds)
+  decrescTime     time from ff peak back to pp (seconds)
+  vibratoRate     vibrato rate (Hz)
+  vibratoDepth    vibrato depth (semitones)
+  vibratoDelay    seconds before vibrato onset
+  vibratoOnset    vibrato fade-in duration (seconds)
+  pitchNoise      random pitch deviation depth (semitones)
+  wtSelLead       seconds wavetable selection leads amplitude envelope
+  buf0            bufnum — pp onset wavetable
+  buf1            bufnum — ff peak wavetable
+  buf2            bufnum — pp decay wavetable
+  panAngle        stereo pan angle (degrees; 0 = centre)
+  outBus          output bus
+*/
 
-// ────────────────────────────────────────────────────────────────────────────
-// \addStringSingle  —  one sinusoidal partial of the string ensemble
-// ────────────────────────────────────────────────────────────────────────────
-~myProtoNotes[\addStringSingle] = CtkProtoNote(
-    SynthDef(\addStringSingle, {
+~myProtoNotes.add(
+    \synthDef_msWT -> CtkSynthDef.new(
+        \synthDef_msWT,
+        { |dur = 8.0,
+          gain = -12.0,
+          freq = 440.0,
+          fundamentalFreq = 440.0,
+          riseTime    = 0.10,
+          decayTime   = 0.30,
+          crescTime   = 4.5,
+          decrescTime = 4.0,
+          vibratoRate   = 5.5,
+          vibratoDepth  = 0.40,   // semitones
+          vibratoDelay  = 0.80,   // seconds before vibrato onset
+          vibratoOnset  = 0.60,   // vibrato fade-in duration
+          pitchNoise    = 0.08,   // semitones of slow random deviation
+          wtSelLead     = 0.30,   // seconds wavetable selection leads amplitude
+          buf0 = 0, buf1 = 1, buf2 = 2,
+          panAngle = 0.0,
+          outBus = 0|
 
-        // ── Partial identity ─────────────────────────────────────────────
-        arg partialNum    = 1,        // which harmonic (1 = fundamental)
-            fundamental   = 261.63,   // note fundamental Hz  (C4)
-            partialAmp    = 1.0,      // SHARC-normalised amplitude for this k
+            var amp        = gain.dbamp;
+            var pos        = panAngle.neg / 45;
+            var softLevel  = 0.18;   // pp relative to ff (~-15 dB)
 
-        // ── Overall amplitude ────────────────────────────────────────────
-            peakAmp       = 0.22,     // linear peak (shared headroom)
+            // ── 1. Amplitude envelope ──────────────────────────────────────
+            // pp → ff → pp with S-curve cresc/decresc segments
+            var ampEnv = EnvGen.kr(
+                Env(
+                    levels: [ 0, softLevel, 1.0, softLevel, 0 ],
+                    times:  [ riseTime, crescTime, decrescTime, decayTime ],
+                    curve:  [ \lin, \sin, \sin, \lin ]
+                ),
+                levelScale: amp,
+                doneAction: Done.freeSelf
+            );
 
-        // ── Amplitude envelope ───────────────────────────────────────────
-            attack        = 0.08,
-            decay         = 0.05,
-            sustainLvl    = 0.85,
-            sustain       = 1.2,      // frequency-dependent sustain length (s)
-            release       = 0.30,
+            // ── 2. Wavetable selection envelope ────────────────────────────
+            // 0.0 = buf0 (pp), 1.0 = buf1 (ff), 2.0 = buf2 (pp)
+            // Leads the amplitude envelope by wtSelLead seconds
+            var wtSelEnv = EnvGen.kr(
+                Env(
+                    levels: [ 0.0, 0.0, 1.0, 2.0, 2.0 ],
+                    times: [
+                        (riseTime    - wtSelLead).max(0.001),
+                        (crescTime   - wtSelLead).max(0.001),
+                        (decrescTime + wtSelLead).max(0.001),
+                        decayTime.max(0.001)
+                    ],
+                    curve: [ \lin, \sin, \sin, \lin ]
+                )
+            );
 
-        // ── Portamento ───────────────────────────────────────────────────
-            portamento    = 0.03,     // Lag time (s)
+            // ── 3. Vibrato & pitch noise ───────────────────────────────────
+            // Vibrato UGen: sinusoidal pitch modulation, delayed onset
+            var vibratoSig = Vibrato.kr(
+                freq,
+                rate:           vibratoRate,
+                depth:          vibratoDepth / 1200,  // semitones → ratio
+                delay:          vibratoDelay,
+                onset:          vibratoOnset,
+                rateVariation:  0.04,
+                depthVariation: 0.10
+            );
 
-        // ── Random pitch deviation (bow noise) ───────────────────────────
-            randDevHz     = 0.6,      // max Hz jitter
-            randDevRate   = 2.5,      // noise rate (Hz)
+            // Slow random pitch deviation (liveness)
+            var pitchDev = LFNoise2.kr(0.8).range(
+                (pitchNoise.neg / 12).midiratio,
+                (pitchNoise      / 12).midiratio
+            );
 
-        // ── Vibrato (D&J fig 5.12 / 5.13) ───────────────────────────────
-            vibratoRate   = 5.5,      // LFO frequency (Hz)
-            vibratoDepth  = 0.20,     // peak depth (semitones)
-            vibratoOnset  = 0.18,     // ramp-to-full duration (s)
+            // Modulated frequency: vibrato × noise deviation
+            var modFreq = vibratoSig * pitchDev;
 
-        // ── Tremolo ──────────────────────────────────────────────────────
-            tremoloDepth  = 0.035,
-            tremoloRate   = 5.1,
+            // ── 4. Three wavetable oscillators ─────────────────────────────
+            var osc0 = Osc.ar(buf0, modFreq);
+            var osc1 = Osc.ar(buf1, modFreq);
+            var osc2 = Osc.ar(buf2, modFreq);
 
-        // ── Ensemble / basis func args ───────────────────────────────────
-            ensembleBeats = 0.55,     // Hz — stereo detuning beats
-            basisNoiseFreq= 1.0,      // noise rate for ring/fm bases
-            basisDetuneHz = 5.0,      // FM deviation magnitude
+            // ── 5. LinSelectX — smooth interpolation between wavetables ────
+            var wtSig = LinSelectX.ar(wtSelEnv, [ osc0, osc1, osc2 ]);
 
-        // ── Pan ──────────────────────────────────────────────────────────
-            pan           = 0.0,      // -1 (L) to +1 (R)
-
-        // ── Output bus ──────────────────────────────────────────────────
-            out           = 0;
-
-        // ── 1. Portamento: smooth fundamental on control rate ────────────
-        var fundSmooth   = Lag.kr(fundamental.kr, portamento);
-
-        // ── 2. Instantaneous partial frequency ───────────────────────────
-        var partialFreq  = fundSmooth * partialNum;
-
-        // ── 3. Vibrato (onset envelope → depth ramps in) ─────────────────
-        //    vibratoDepth is in semitones; convert to Hz deviation
-        var vibratoEnv   = Env(
-            [0, 0, vibratoDepth],
-            [attack, vibratoOnset],
-            \lin
-        ).ar;                                        // depth in semitones
-        var vibratoHz    = partialFreq * (
-            2.pow(vibratoEnv / 12.0) - 1.0          // semitones → Hz offset
-        );
-        var vibratoSig   = SinOsc.kr(vibratoRate) * vibratoHz;
-
-        // ── 4. Random pitch deviation (bow micro-fluctuation) ────────────
-        var randDev      = LFNoise2.ar(randDevRate, randDevHz);
-
-        // ── 5. Final instantaneous freq (with all deviations) ────────────
-        var instFreq     = partialFreq + vibratoSig + randDev;
-
-        // ── 6. Basis oscillator (chosen by scoring function argument) ─────
-        //    We always build all four and gate with Select.
-        //    This keeps a single SynthDef compilable without Func injection.
-        //    Index: 0=pure, 1=detuneStereoBeat, 2=ringNoiseMono, 3=fmNoiseStereo
-        var basisSig = Select.ar(0, [   // default: pure (overridden below)
-            // pure
-            SinOsc.ar(instFreq, 0.0, 1.0).dup(2),
-            // detuneStereoBeat
-            SinOsc.ar(instFreq + (ensembleBeats / 2 * [1, -1]), 0.0, 1.0),
-            // ringNoiseMono
-            (SinOsc.ar(instFreq, 0.0, 1.0) *
-                LFNoise2.ar(basisNoiseFreq / 20.0).range(-12.dbamp, 0.dbamp)
-            ).dup(2),
-            // fmNoiseStereo
-            SinOsc.ar(
-                instFreq + LFNoise2.ar(basisNoiseFreq.dup(2), basisDetuneHz),
-                [0.0, 0.5pi], 1.0
-            )
-        ]);
-
-        // NOTE: since Select inside SynthDef requires a fixed index at compile
-        // time for multi-channel signals, we instead use the four signals mixed
-        // by a per-SynthDef conditional chosen at note-on via a 0-indexed arg.
-        // The approach below uses four oscillators weighted by binary selectors
-        // passed as args — one arg (\basisIndex 0–3) picks the winner.
-        // This is SuperCollider-idiomatic for switchable basis functions.
-        arg basisIndex = 1;   // 0=pure 1=detuneStereoBeat 2=ringNoise 3=fmNoise
-
-        var pureSig    = SinOsc.ar(instFreq, 0.0).dup(2);
-        var detuneSig  = SinOsc.ar(instFreq + (ensembleBeats / 2 * [1,-1]), 0.0);
-        var ringNoise  = (SinOsc.ar(instFreq) *
-            LFNoise2.ar(basisNoiseFreq / 20.0).range(-12.dbamp, 0.dbamp)
-        ).dup(2);
-        var fmNoise    = SinOsc.ar(
-            instFreq + LFNoise2.ar([basisNoiseFreq, basisNoiseFreq + 0.1], basisDetuneHz),
-            [0.0, 0.5pi]
-        );
-
-        // Gate: multiply each by its selector (0 or 1) and sum
-        var b0 = (basisIndex sig== 0).asInteger.asFloat;
-        var b1 = (basisIndex sig== 1).asInteger.asFloat;
-        var b2 = (basisIndex sig== 2).asInteger.asFloat;
-        var b3 = (basisIndex sig== 3).asInteger.asFloat;
-
-        var chosenSig = (pureSig * b0) + (detuneSig * b1) +
-                        (ringNoise * b2) + (fmNoise * b3);
-
-        // ── 7. Tremolo (amplitude flutter) ───────────────────────────────
-        var tremoloEnv = LFNoise2.kr(tremoloRate).range(
-            1.0 - tremoloDepth, 1.0
-        );
-
-        // ── 8. Amplitude envelope (frequency-dependent sustain) ──────────
-        //    sustain is already computed by the scoring function per-partial.
-        var ampEnv = Env.adsr(
-            attack, decay, sustainLvl, release
-        ).ar(Done.freeSelf, gate: 1, timeScale: sustain / (attack + decay + 1.0 + release));
-
-        // A cleaner approach: use a fixed-shape Env with absolute times
-        var ampEnv2 = EnvGen.ar(
-            Env(
-                [0, 1, sustainLvl, sustainLvl, 0],
-                [attack, decay, sustain - attack - decay, release],
-                [\lin, \exp, \lin, \exp]
-            ),
-            doneAction: Done.freeSelf
-        );
-
-        // ── 9. Final signal ───────────────────────────────────────────────
-        var sig = chosenSig * partialAmp * peakAmp * tremoloEnv * ampEnv2;
-
-        // ── 10. Pan to output ─────────────────────────────────────────────
-        Out.ar(out, Pan2.ar(sig.sum, pan))
-    })
+            // ── 6. Apply amplitude envelope & stereo pan ───────────────────
+            Out.ar(outBus, Pan2.ar(wtSig * ampEnv, pos))
+        }
+    )
 );
-
-"synthDefs.scd loaded — ~myProtoNotes keys: %".format(~myProtoNotes.keys).postln;

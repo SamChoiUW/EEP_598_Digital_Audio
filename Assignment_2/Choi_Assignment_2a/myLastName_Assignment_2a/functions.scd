@@ -182,8 +182,68 @@ HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectRissetsBells::");
             // return a score
             CtkScore.newFromDict(noteParams, ctkProtoNotes)
         };
+~myWTScoringFuncs[\additiveScale] = { |start = 0.0, noteDur = 1.0, noteGain = 0.0,
+    noteRiseTime = 0.1, noteDecayTime = 0.1, notePanAngle = 0.0,
+    durExp = 0.75,
+    pitches, specDict, instrName = \violin_martele, buffers,
+    outBus = 0, ctkProtoNotes|
 
+    var synthDefName  = \synthDef_assignment1A;
+    var noteParams    = Dictionary.new;
+    var score;
+    var allStartTimes = [];
+    var allDurs       = [];
+    var allGains      = [];
+    var allFreqs      = [];
+    var allPhases     = [];
+    var allRiseTimes  = [];
+    var allDecayTimes = [];
+    var allBufnums    = [];
+    var allPanAngles  = [];
+    var allOutBuses   = [];
 
+    pitches.do({ |p, noteIndex|
+        var refFreq         = specDict[instrName][p][\refFreq];
+        var harmsAmpsPhases = specDict[instrName][p][\harmsAmpsPhases];
+        var noteStart       = start + (noteIndex * noteDur);
+
+        harmsAmpsPhases.do({ |partial|
+            var partialNum   = partial[0];
+            var partialAmp   = partial[1];
+            var partialPhase = partial[2];
+            var partialFreq  = refFreq * partialNum;
+            var partialDur   = noteDur * (1 / partialNum.pow(durExp));
+            var partialDecay = noteDecayTime.min(partialDur * 0.5);
+
+            allStartTimes = allStartTimes.add(noteStart);
+            allDurs       = allDurs.add(partialDur);
+            allGains = allGains.add(noteGain + partialAmp.ampdb - harmsAmpsPhases.size.ampdb);
+            allFreqs      = allFreqs.add(partialFreq);
+            allPhases     = allPhases.add(partialPhase);
+            allRiseTimes  = allRiseTimes.add(noteRiseTime);
+            allDecayTimes = allDecayTimes.add(partialDecay);
+            allBufnums    = allBufnums.add(buffers[instrName][noteIndex].bufnum);
+            allPanAngles  = allPanAngles.add(notePanAngle);
+            allOutBuses   = allOutBuses.add(outBus);
+        });
+    });
+
+    noteParams[\synthdefname] = Array.fill(allDurs.size, { synthDefName });
+    noteParams[\starttime]    = allStartTimes;
+    noteParams[\dur]          = allDurs;
+    noteParams[\gain]         = allGains;
+    noteParams[\freq]         = allFreqs;
+    noteParams[\phase]        = allPhases;
+    noteParams[\riseTime]     = allRiseTimes;
+    noteParams[\decayTime]    = allDecayTimes;
+    noteParams[\bufnum]       = allBufnums;
+    noteParams[\panAngle]     = allPanAngles;
+    noteParams[\outBus]       = allOutBuses;
+
+    score = CtkScore.newFromDict(noteParams, ctkProtoNotes);
+    buffers[instrName].do({ |buf| score.add(buf) });
+    score
+};
 // -------------
 // ~myBufferFuncs
 

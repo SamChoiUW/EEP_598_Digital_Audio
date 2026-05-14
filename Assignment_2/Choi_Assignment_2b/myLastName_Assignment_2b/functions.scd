@@ -1,5 +1,5 @@
 /*
-Project Title: myLastName_Assignment_2b
+Project Title: choi_Assignment_2b
 Date: Wed Apr 15 17:21:21 2026
 
 DXARTS 46x: Sound Series Tutorial
@@ -41,6 +41,51 @@ HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectRissetsBells::");
 // -------------
 // ~myWTScoringFuncs
 
+~myWTScoringFuncs[\tone] = { |
+    start           = 0.0,
+    dur             = 9.5,
+    gain            = -12.0,
+    freq            = 440.0,
+    fundamentalFreq = 440.0,
+    riseTime        = 0.10,
+    decayTime       = 0.30,
+    crescTime       = 4.5,
+    decrescTime     = 4.5,
+    pitchNoise      = 0.08,
+    wtSelLead       = 0.30,
+    wtBufs,
+    panAngle        = 0.0,
+    outBus          = 0,
+    ctkProtoNotes |
+
+    var noteParams = Dictionary.new;
+
+    noteParams[\synthdefname]    = [ \synthDef_msWT ];
+    noteParams[\starttime]       = [ start ];
+    noteParams[\dur]             = [ dur ];
+    noteParams[\duration]        = [ dur ];
+    noteParams[\gain]            = [ gain ];
+    noteParams[\freq]            = [ freq ];
+    noteParams[\fundamentalFreq] = [ fundamentalFreq ];
+    noteParams[\riseTime]        = [ riseTime ];
+    noteParams[\decayTime]       = [ decayTime ];
+    noteParams[\crescTime]       = [ crescTime ];
+    noteParams[\decrescTime]     = [ decrescTime ];
+    noteParams[\pitchNoise]      = [ pitchNoise ];
+    noteParams[\wtSelLead]       = [ wtSelLead ];
+    noteParams[\buf0]            = [ wtBufs[0].bufnum ];
+    noteParams[\buf1]            = [ wtBufs[1].bufnum ];
+    noteParams[\buf2]            = [ wtBufs[2].bufnum ];
+    noteParams[\buf3]            = [ wtBufs[3].bufnum ];
+    noteParams[\buf4]            = [ wtBufs[4].bufnum ];
+    noteParams[\buf5]            = [ wtBufs[5].bufnum ];
+    noteParams[\buf6]            = [ wtBufs[6].bufnum ];
+    noteParams[\buf7]            = [ wtBufs[7].bufnum ];
+    noteParams[\panAngle]        = [ panAngle ];
+    noteParams[\outBus]          = [ outBus ];
+
+    CtkScore.newFromDict(noteParams, ctkProtoNotes)
+};
 
 // -------------
 // ~myWPScoringFuncs

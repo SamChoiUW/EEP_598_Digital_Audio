@@ -1,5 +1,5 @@
 /*
-Project Title: myLastName_Assignment_2b
+Project Title: choi_Assignment_2b
 Date: Wed Apr 15 17:21:21 2026
 
 DXARTS 46x: Sound Series Tutorial
@@ -29,7 +29,11 @@ If we haven't already, we'll want to load functions, data and synthDefs.
 */
 
 
+s.boot;
 
+(Document.current.dir +/+ "synthDefs.scd").load;
+(Document.current.dir +/+ "functions.scd").load;
+(Document.current.dir +/+ "data.scd").load;
 
 ///////////////// set RT/NRT environment variables ///////////////
 
@@ -55,33 +59,63 @@ If we haven't already, we'll want to load functions, data and synthDefs.
 
 ///////////////// set scoring parameter values //////////////////
 
-/*
-create score(s)...
+~noteGain    = -12.0;
+~riseTime    = 0.10;
+~decayTime   = 0.30;
+~pitchNoise  = 0.08;
+~wtSelLead   = 0.30;
 
-e.g.:
+~scoreDur    = 9.5;
+~crescTime   = 4.2;
+~decrescTime = 4.6;
 
-~mainScore = ...;
-*/
+(
+    ~fundamentalFreq = ~saxData[\fundamentalFreq];
+    ~wtBufs          = ~saxData[\wtBufs];
 
+    ~scoreA = ~myWTScoringFuncs[\tone].value(
+        start:           0.0,
+        dur:             ~scoreDur,
+        gain:            ~noteGain,
+        freq:            ~fundamentalFreq,
+        fundamentalFreq: ~fundamentalFreq,
+        riseTime:        ~riseTime,
+        decayTime:       ~decayTime,
+        crescTime:       ~crescTime,
+        decrescTime:     ~decrescTime,
+        pitchNoise:      ~pitchNoise,
+        wtSelLead:       ~wtSelLead,
+        wtBufs:          ~wtBufs,
+        panAngle:        0.0,
+        outBus:          0,
+        ctkProtoNotes:   ~myProtoNotes
+    );
 
+    ~myScoreFuncs[\postNotes].value(~scoreA);
 
+    ~mainScore = CtkScore.new;
+    ~scoreA.notes.do({ |n| ~mainScore.add(n) });
+    ~wtBufs.do({ |buf| ~mainScore.add(buf) });
 
+);
 
 ///////////////// render the main score //////////////////
 
+/*
+Evaluate this block after the score is built above.
+*/
 
 // write score to sound file with the -write message, and then open with helper score function, \scoreWriteOpenSFPlayer
 (
     ~mainScore.write(
-        path: ~outputFilePath.fullPath,
-        sampleRate: ~sampleRate,
+        path:         ~outputFilePath.fullPath,
+        sampleRate:   ~sampleRate,
         headerFormat: ~headerFormat,
         sampleFormat: ~sampleFormat,
-        options: ~serverOptions,
-        action: ~myScoreFuncs[\scoreWriteOpenSFPlayer].value(~mainScore, ~outputFilePath)
+        options:      ~serverOptions,
+        action:       ~myScoreFuncs[\scoreWriteOpenSFPlayer].value(~mainScore, ~outputFilePath)
     )
 );
-
 /*
 NOTE:
 
@@ -120,4 +154,11 @@ If we've only used the non-realtime server, this step is not necessary.
 For instance, if we've only used -write rather than -play, we don't need to free buffers.
 
 */
-  
+
+~snapData.do({ |hap, i|
+    var amps = hap.collect({ |triplet| triplet[1] });
+    "Snapshot %: max amp = %".format(i, amps.maxItem).postln;
+});
+
+~wtBufs[0].plot;
+~wtBufs[4].plot;

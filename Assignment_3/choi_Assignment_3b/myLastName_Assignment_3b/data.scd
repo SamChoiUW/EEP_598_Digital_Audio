@@ -19,6 +19,27 @@ HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectSHARCWTsWPs::");
 HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectRissetsBells::");
 */
 
+// source path
+~path = "/Users/joanders/Desktop/philharmonia/Brass/french horn/french-horn_A2_05_fortissimo_normal.mp3";
+
+
+// header details - for sampleRate!
+~soundFile = SoundFile.new(~path);
+~soundFile.openRead;
+~soundFile.close;
+~sampleRate = ~soundFile.sampleRate;
+
+// read the complete signal
+~signal = Signal.read(~path);
+
+// estimate freq
+~skipTime = 0.352;
+~freq = 111.0;  // guesstimate
+~order = 2;  // number of periods to average - could do less, or more!
+
+// returns estimated frequency & correlation
+~freqCorr = ~signal.estimateFreq(~skipTime * ~sampleRate , ~freq, order: ~order, sampleRate: ~sampleRate );
+
 
 // -------------------------
 // instantiate dictionaries
@@ -26,3 +47,4 @@ HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectRissetsBells::");
 
 // -------------------------
 // add associations
+

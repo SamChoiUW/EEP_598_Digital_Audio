@@ -14,6 +14,35 @@ For examples see:
 HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectSHARCWTsWPs::")
 */
 
+/*
+Project Title: myLastName_Assignment_2a
+Date: Wed Apr 15 17:20:57 2026
+
+DXARTS 46x: Sound Series Tutorial
+Authors: Joseph Anderson, Wei Yang, et al.
+Affiliation: DXARTS, University of Washington (https://dxarts.washington.edu/)
+License: GPLv3 (https://www.gnu.org/licenses/gpl-3.0.en.html)
+*/
+
+/*
+_main_ is where we'll organize the "main" tasks of our project.
+
+*/
+
+/*
+For examples see:
+
+HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectSHARCWTsWPs::");
+HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectRissetsBells::");
+*/
+
+
+///////////////// load functions, data & synthDefs ///////////////
+
+/*
+If we haven't already, we'll want to load functions, data and synthDefs.
+
+*/
 
 // -------------------------
 // instantiate CtkProtoNotes
@@ -23,9 +52,8 @@ HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectSHARCWTsWPs::")
 // -------------------------
 // add synthDefs
  ~myProtoNotes.add(
-    SynthDef.new(
-		\synthDef_assignment1A,  // name - as Symbol
-
+		\synthDef_assignment1A -> CtkSynthDef.new(
+			\synthDef_assignment1A,
         { |dur = 1.0, gain = -14.0, riseTime = 0.1, decayTime = 0.1, freq = 440.0, phase = 0, noiseFreq = 0.5, panAngle = 0, bufnum = 0, outBus = 0|  // UGen graph function
 
             // vars for UGens
@@ -54,10 +82,10 @@ HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectSHARCWTsWPs::")
 
 			// wavetable
             // oscillator
-			wtSig = Osc.ar(bufBum, freq, phase, ampEnvSig) * ampNoise
+			wtSig = Osc.ar(bufnum, freq, phase, ampEnvSig) * ampNoise;
 
             // stereo imager
-            panSig = Pan2.ar(sinSig, pos);  // Pan2 (audio rate)
+            panSig = Pan2.ar(wtSig, pos);  // Pan2 (audio rate)
 
             // assign to out
             outSig = panSig;
@@ -67,6 +95,7 @@ HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectSHARCWTsWPs::")
                 outSig
             )  // Out (audio rate)
         }
-    )
+	)
 );
+
 

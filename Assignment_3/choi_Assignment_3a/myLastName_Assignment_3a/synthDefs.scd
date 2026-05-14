@@ -94,10 +94,20 @@ HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectSHARCWTsWPs::")
 		}
 	),
 
+	/*
+	TODO:
+
+	• ratio 9:8 --> \eep598_monoPlayBuf_downUp_9_8
+	• ratio 5:4 --> \eep598_monoPlayBuf_downUp_5_4
+	• ratio 4:3 --> \eep598_monoPlayBuf_downUp_4_3
+	• ratio 3:2 --> \eep598_monoPlayBuf_downUp_3_2
+	• ratio 5:3 --> \eep598_monoPlayBuf_downUp_5_3
+	• ratio 15:8 --> \eep598_monoPlayBuf_downUp_15_8
+	*/
 
 	SynthDef.new(
 		\eep598_monoPlayBuf_downUp_9_8,  // name - as Symbol
-{ |dur = 1.0, gain = 0.0, riseTime = 0.01, decayTime = 0.01, refFreq = 440.0, minRefFreq = 20.0, panAngle = 0,
+		{ |dur = 1.0, gain = 0.0, riseTime = 0.01, decayTime = 0.01, refFreq = 440.0, minRefFreq = 20.0, panAngle = 0,
 			bufnum = 0, outBus = 0|
 
             // vars for UGens
@@ -125,7 +135,202 @@ HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectSHARCWTsWPs::")
 			var normFac = div.sqrt;  // maintains power (rms)
 			var size = 4096;
 			var padFac = 1 - (2 / div);
-			var tableBuffer = LocalBuf.newFrom(~myUgenHelperFuncs[\hannPadWindowFunc].value(size, padFac).asWavetable);
+			var tableBuffer = LocalBuf.newFrom(~myUGenHelperFuncs[\hannPadWindowFunc].value(size, padFac).asWavetable);
+
+			// ----
+			// synthesis
+
+			// amplitude envelope
+			ampEnvSig = EnvGen.kr(
+				Env.linen(riseTime, dur - (riseTime + decayTime), decayTime),  // Env: *linen
+				levelScale: amp,
+				doneAction: Done.freeSelf
+			);  // EnvGen (control rate)
+
+
+			// sample playback
+			playBufSig = PlayBuf.ar(numChannels, bufnum,  BufRateScale.kr(bufnum));
+			// time domain transpose one
+			transSigDiv = playBufSig * Osc.ar(tableBuffer, refFreq / div, mul: normFac);
+			transSigMul = ~myUGenHelperFuncs[\maCombFunc].value(transSigDiv, minFreq, freq, order, order);
+
+			// apply -linen envelope
+			transSigMul = transSigMul * ampEnvSig;
+
+			// stereo imager
+			panSig = Pan2.ar(transSigMul, pos);  // Pan2 (audio rate)
+
+			// assign to out
+			outSig = panSig;
+
+			Out.ar(
+				outBus,  // out bus - set as an argument
+				outSig
+			)  // Out (audio rate)
+		}
+	),
+
+	SynthDef.new(
+		\eep598_monoPlayBuf_downUp_5_4,  // name - as Symbol
+		{ |dur = 1.0, gain = 0.0, riseTime = 0.01, decayTime = 0.01, refFreq = 440.0, minRefFreq = 20.0, panAngle = 0,
+			bufnum = 0, outBus = 0|
+
+            // vars for UGens
+            var ampEnvSig;
+            var playBufSig;
+			var transSigMul;
+			var transSigDiv;
+            var panSig;
+            var outSig;
+
+            // vars for control
+
+			var numChannels = 1; // <-- mono buffer - must be set in the UGen graph function!
+            var amp = gain.dbamp;
+            var pos = panAngle.neg / 45;
+
+			// vars for transposition
+			// - multiplication
+			var mul = 5;  // frequency multiplication ratio
+			var minFreq = mul * minRefFreq, freq = mul * refFreq;
+			var order = mul - 1;
+
+			// - division
+			var div = 4;  // frequency division ratio
+			var normFac = div.sqrt;  // maintains power (rms)
+			var size = 4096;
+			var padFac = 1 - (2 / div);
+			var tableBuffer = LocalBuf.newFrom(~myUGenHelperFuncs[\hannPadWindowFunc].value(size, padFac).asWavetable);
+
+			// ----
+			// synthesis
+
+			// amplitude envelope
+			ampEnvSig = EnvGen.kr(
+				Env.linen(riseTime, dur - (riseTime + decayTime), decayTime),  // Env: *linen
+				levelScale: amp,
+				doneAction: Done.freeSelf
+			);  // EnvGen (control rate)
+
+
+			// sample playback
+			playBufSig = PlayBuf.ar(numChannels, bufnum,  BufRateScale.kr(bufnum));
+			// time domain transpose one
+			transSigDiv = playBufSig * Osc.ar(tableBuffer, refFreq / div, mul: normFac);
+			transSigMul = ~myUGenHelperFuncs[\maCombFunc].value(transSigDiv, minFreq, freq, order, order);
+
+			// apply -linen envelope
+			transSigMul = transSigMul * ampEnvSig;
+
+			// stereo imager
+			panSig = Pan2.ar(transSigMul, pos);  // Pan2 (audio rate)
+
+			// assign to out
+			outSig = panSig;
+
+			Out.ar(
+				outBus,  // out bus - set as an argument
+				outSig
+			)  // Out (audio rate)
+		}
+	),
+
+	SynthDef.new(
+		\eep598_monoPlayBuf_downUp_4_3,  // name - as Symbol
+		{ |dur = 1.0, gain = 0.0, riseTime = 0.01, decayTime = 0.01, refFreq = 440.0, minRefFreq = 20.0, panAngle = 0,
+			bufnum = 0, outBus = 0|
+
+            // vars for UGens
+            var ampEnvSig;
+            var playBufSig;
+			var transSigMul;
+			var transSigDiv;
+            var panSig;
+            var outSig;
+
+            // vars for control
+
+			var numChannels = 1; // <-- mono buffer - must be set in the UGen graph function!
+            var amp = gain.dbamp;
+            var pos = panAngle.neg / 45;
+
+			// vars for transposition
+			// - multiplication
+			var mul = 4;  // frequency multiplication ratio
+			var minFreq = mul * minRefFreq, freq = mul * refFreq;
+			var order = mul - 1;
+
+			// - division
+			var div = 3;  // frequency division ratio
+			var normFac = div.sqrt;  // maintains power (rms)
+			var size = 4096;
+			var padFac = 1 - (2 / div);
+			var tableBuffer = LocalBuf.newFrom(~myUGenHelperFuncs[\hannPadWindowFunc].value(size, padFac).asWavetable);
+
+			// ----
+			// synthesis
+
+			// amplitude envelope
+			ampEnvSig = EnvGen.kr(
+				Env.linen(riseTime, dur - (riseTime + decayTime), decayTime),  // Env: *linen
+				levelScale: amp,
+				doneAction: Done.freeSelf
+			);  // EnvGen (control rate)
+
+
+			// sample playback
+			playBufSig = PlayBuf.ar(numChannels, bufnum,  BufRateScale.kr(bufnum));
+			// time domain transpose one
+			transSigDiv = playBufSig * Osc.ar(tableBuffer, refFreq / div, mul: normFac);
+			transSigMul = ~myUGenHelperFuncs[\maCombFunc].value(transSigDiv, minFreq, freq, order, order);
+
+			// apply -linen envelope
+			transSigMul = transSigMul * ampEnvSig;
+
+			// stereo imager
+			panSig = Pan2.ar(transSigMul, pos);  // Pan2 (audio rate)
+
+			// assign to out
+			outSig = panSig;
+
+			Out.ar(
+				outBus,  // out bus - set as an argument
+				outSig
+			)  // Out (audio rate)
+		}
+	),
+
+	SynthDef.new(
+		\eep598_monoPlayBuf_downUp_3_2,  // name - as Symbol
+		{ |dur = 1.0, gain = 0.0, riseTime = 0.01, decayTime = 0.01, refFreq = 440.0, minRefFreq = 20.0, panAngle = 0,
+			bufnum = 0, outBus = 0|
+
+            // vars for UGens
+            var ampEnvSig;
+            var playBufSig;
+			var transSigMul;
+			var transSigDiv;
+            var panSig;
+            var outSig;
+
+            // vars for control
+
+			var numChannels = 1; // <-- mono buffer - must be set in the UGen graph function!
+            var amp = gain.dbamp;
+            var pos = panAngle.neg / 45;
+
+			// vars for transposition
+			// - multiplication
+			var mul = 3;  // frequency multiplication ratio
+			var minFreq = mul * minRefFreq, freq = mul * refFreq;
+			var order = mul - 1;
+
+			// - division
+			var div = 2;  // frequency division ratio
+			var normFac = div.sqrt;  // maintains power (rms)
+			var size = 4096;
+			var padFac = 1 - (2 / div);
+			var tableBuffer = LocalBuf.newFrom(~myUGenHelperFuncs[\hannPadWindowFunc].value(size, padFac).asWavetable);
 
 			// ----
 			// synthesis
@@ -161,16 +366,136 @@ HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectSHARCWTsWPs::")
 	),
 
 
-	/*
-	TODO:
+	SynthDef.new(
+		\eep598_monoPlayBuf_downUp_5_3,  // name - as Symbol
+		{ |dur = 1.0, gain = 0.0, riseTime = 0.01, decayTime = 0.01, refFreq = 440.0, minRefFreq = 20.0, panAngle = 0,
+			bufnum = 0, outBus = 0|
 
-	• ratio 9:8 --> \eep598_monoPlayBuf_downUp_9_8
-	• ratio 5:4 --> \eep598_monoPlayBuf_downUp_5_4
-	• ratio 4:3 --> \eep598_monoPlayBuf_downUp_4_3
-	• ratio 3:2 --> \eep598_monoPlayBuf_downUp_3_2
-	• ratio 5:3 --> \eep598_monoPlayBuf_downUp_5_3
-	• ratio 15:8 --> \eep598_monoPlayBuf_downUp_15_8
-	*/
+            // vars for UGens
+            var ampEnvSig;
+            var playBufSig;
+			var transSigMul;
+			var transSigDiv;
+            var panSig;
+            var outSig;
+
+            // vars for control
+
+			var numChannels = 1; // <-- mono buffer - must be set in the UGen graph function!
+            var amp = gain.dbamp;
+            var pos = panAngle.neg / 45;
+
+			// vars for transposition
+			// - multiplication
+			var mul = 5;  // frequency multiplication ratio
+			var minFreq = mul * minRefFreq, freq = mul * refFreq;
+			var order = mul - 1;
+
+			// - division
+			var div = 3;  // frequency division ratio
+			var normFac = div.sqrt;  // maintains power (rms)
+			var size = 4096;
+			var padFac = 1 - (2 / div);
+			var tableBuffer = LocalBuf.newFrom(~myUGenHelperFuncs[\hannPadWindowFunc].value(size, padFac).asWavetable);
+
+			// ----
+			// synthesis
+
+			// amplitude envelope
+			ampEnvSig = EnvGen.kr(
+				Env.linen(riseTime, dur - (riseTime + decayTime), decayTime),  // Env: *linen
+				levelScale: amp,
+				doneAction: Done.freeSelf
+			);  // EnvGen (control rate)
+
+
+			// sample playback
+			playBufSig = PlayBuf.ar(numChannels, bufnum,  BufRateScale.kr(bufnum));
+			// time domain transpose one
+			transSigDiv = playBufSig * Osc.ar(tableBuffer, refFreq / div, mul: normFac);
+			transSigMul = ~myUGenHelperFuncs[\maCombFunc].value(transSigDiv, minFreq, freq, order, order);
+
+			// apply -linen envelope
+			transSigMul = transSigMul * ampEnvSig;
+
+			// stereo imager
+			panSig = Pan2.ar(transSigMul, pos);  // Pan2 (audio rate)
+
+			// assign to out
+			outSig = panSig;
+
+			Out.ar(
+				outBus,  // out bus - set as an argument
+				outSig
+			)  // Out (audio rate)
+		}
+	),
+
+
+	SynthDef.new(
+		\eep598_monoPlayBuf_downUp_15_8,  // name - as Symbol
+		{ |dur = 1.0, gain = 0.0, riseTime = 0.01, decayTime = 0.01, refFreq = 440.0, minRefFreq = 20.0, panAngle = 0,
+			bufnum = 0, outBus = 0|
+
+            // vars for UGens
+            var ampEnvSig;
+            var playBufSig;
+			var transSigMul;
+			var transSigDiv;
+            var panSig;
+            var outSig;
+
+            // vars for control
+
+			var numChannels = 1; // <-- mono buffer - must be set in the UGen graph function!
+            var amp = gain.dbamp;
+            var pos = panAngle.neg / 45;
+
+			// vars for transposition
+			// - multiplication
+			var mul = 15;  // frequency multiplication ratio
+			var minFreq = mul * minRefFreq, freq = mul * refFreq;
+			var order = mul - 1;
+
+			// - division
+			var div = 8;  // frequency division ratio
+			var normFac = div.sqrt;  // maintains power (rms)
+			var size = 4096;
+			var padFac = 1 - (2 / div);
+			var tableBuffer = LocalBuf.newFrom(~myUGenHelperFuncs[\hannPadWindowFunc].value(size, padFac).asWavetable);
+
+			// ----
+			// synthesis
+
+			// amplitude envelope
+			ampEnvSig = EnvGen.kr(
+				Env.linen(riseTime, dur - (riseTime + decayTime), decayTime),  // Env: *linen
+				levelScale: amp,
+				doneAction: Done.freeSelf
+			);  // EnvGen (control rate)
+
+
+			// sample playback
+			playBufSig = PlayBuf.ar(numChannels, bufnum,  BufRateScale.kr(bufnum));
+			// time domain transpose one
+			transSigDiv = playBufSig * Osc.ar(tableBuffer, refFreq / div, mul: normFac);
+			transSigMul = ~myUGenHelperFuncs[\maCombFunc].value(transSigDiv, minFreq, freq, order, order);
+
+			// apply -linen envelope
+			transSigMul = transSigMul * ampEnvSig;
+
+			// stereo imager
+			panSig = Pan2.ar(transSigMul, pos);  // Pan2 (audio rate)
+
+			// assign to out
+			outSig = panSig;
+
+			Out.ar(
+				outBus,  // out bus - set as an argument
+				outSig
+			)  // Out (audio rate)
+		}
+	),
 
 	// 2:1 - do
 	// semi-degenerate ratio, e.g., just frequency multiply
@@ -311,7 +636,390 @@ HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectSHARCWTsWPs::")
 	• ratio 5:3 --> \eep598_monoPlayBuf_upDown_5_3
 	• ratio 15:8 --> \eep598_monoPlayBuf_upDown_15_8
 	*/
+	SynthDef.new(
+		\eep598_monoPlayBuf_downUp_9_8,  // name - as Symbol
+		{ |dur = 1.0, gain = 0.0, riseTime = 0.01, decayTime = 0.01, refFreq = 440.0, minRefFreq = 20.0, panAngle = 0,
+			bufnum = 0, outBus = 0|
 
+            // vars for UGens
+            var ampEnvSig;
+            var playBufSig;
+			var transSigMul;
+			var transSigDiv;
+            var panSig;
+            var outSig;
+
+            // vars for control
+
+			var numChannels = 1; // <-- mono buffer - must be set in the UGen graph function!
+            var amp = gain.dbamp;
+            var pos = panAngle.neg / 45;
+
+			// vars for transposition
+			// - multiplication
+			var mul = 9;  // frequency multiplication ratio
+			var minFreq = mul * minRefFreq, freq = mul * refFreq;
+			var order = mul - 1;
+
+			// - division
+			var div = 8;  // frequency division ratio
+			var normFac = div.sqrt;  // maintains power (rms)
+			var size = 4096;
+			var padFac = 1 - (2 / div);
+			var tableBuffer = LocalBuf.newFrom(~myUGenHelperFuncs[\hannPadWindowFunc].value(size, padFac).asWavetable);
+
+			// ----
+			// synthesis
+
+			// amplitude envelope
+			ampEnvSig = EnvGen.kr(
+				Env.linen(riseTime, dur - (riseTime + decayTime), decayTime),  // Env: *linen
+				levelScale: amp,
+				doneAction: Done.freeSelf
+			);  // EnvGen (control rate)
+
+
+			// sample playback
+			playBufSig = PlayBuf.ar(numChannels, bufnum,  BufRateScale.kr(bufnum));
+			// time domain transpose one
+			transSigMul = ~myUGenHelperFuncs[\maCombFunc].value(playBufSig, minFreq, freq, order, order);
+			transSigDiv = transSigMul * Osc.ar(tableBuffer, refFreq / div, mul: normFac);
+
+			// apply -linen envelope
+			transSigDiv = transSigDiv * ampEnvSig;
+
+			// stereo imager
+			panSig = Pan2.ar(transSigMul, pos);  // Pan2 (audio rate)
+
+			// assign to out
+			outSig = panSig;
+
+			Out.ar(
+				outBus,  // out bus - set as an argument
+				outSig
+			)  // Out (audio rate)
+		}
+	),
+	SynthDef.new(
+		\eep598_monoPlayBuf_downUp_5_4,  // name - as Symbol
+		{ |dur = 1.0, gain = 0.0, riseTime = 0.01, decayTime = 0.01, refFreq = 440.0, minRefFreq = 20.0, panAngle = 0,
+			bufnum = 0, outBus = 0|
+
+            // vars for UGens
+            var ampEnvSig;
+            var playBufSig;
+			var transSigMul;
+			var transSigDiv;
+            var panSig;
+            var outSig;
+
+            // vars for control
+
+			var numChannels = 1; // <-- mono buffer - must be set in the UGen graph function!
+            var amp = gain.dbamp;
+            var pos = panAngle.neg / 45;
+
+			// vars for transposition
+			// - multiplication
+			var mul = 5;  // frequency multiplication ratio
+			var minFreq = mul * minRefFreq, freq = mul * refFreq;
+			var order = mul - 1;
+
+			// - division
+			var div = 4;  // frequency division ratio
+			var normFac = div.sqrt;  // maintains power (rms)
+			var size = 4096;
+			var padFac = 1 - (2 / div);
+			var tableBuffer = LocalBuf.newFrom(~myUGenHelperFuncs[\hannPadWindowFunc].value(size, padFac).asWavetable);
+
+			// ----
+			// synthesis
+
+			// amplitude envelope
+			ampEnvSig = EnvGen.kr(
+				Env.linen(riseTime, dur - (riseTime + decayTime), decayTime),  // Env: *linen
+				levelScale: amp,
+				doneAction: Done.freeSelf
+			);  // EnvGen (control rate)
+
+
+			// sample playback
+			playBufSig = PlayBuf.ar(numChannels, bufnum,  BufRateScale.kr(bufnum));
+			// time domain transpose one
+			transSigMul = ~myUGenHelperFuncs[\maCombFunc].value(playBufSig, minFreq, freq, order, order);
+			transSigDiv = transSigMul * Osc.ar(tableBuffer, refFreq / div, mul: normFac);
+
+			// apply -linen envelope
+			transSigDiv = transSigDiv * ampEnvSig;
+
+			// stereo imager
+			panSig = Pan2.ar(transSigMul, pos);  // Pan2 (audio rate)
+
+			// assign to out
+			outSig = panSig;
+
+			Out.ar(
+				outBus,  // out bus - set as an argument
+				outSig
+			)  // Out (audio rate)
+		}
+	),
+		SynthDef.new(
+		\eep598_monoPlayBuf_downUp_4_3,  // name - as Symbol
+		{ |dur = 1.0, gain = 0.0, riseTime = 0.01, decayTime = 0.01, refFreq = 440.0, minRefFreq = 20.0, panAngle = 0,
+			bufnum = 0, outBus = 0|
+
+            // vars for UGens
+            var ampEnvSig;
+            var playBufSig;
+			var transSigMul;
+			var transSigDiv;
+            var panSig;
+            var outSig;
+
+            // vars for control
+
+			var numChannels = 1; // <-- mono buffer - must be set in the UGen graph function!
+            var amp = gain.dbamp;
+            var pos = panAngle.neg / 45;
+
+			// vars for transposition
+			// - multiplication
+			var mul = 4;  // frequency multiplication ratio
+			var minFreq = mul * minRefFreq, freq = mul * refFreq;
+			var order = mul - 1;
+
+			// - division
+			var div = 3;  // frequency division ratio
+			var normFac = div.sqrt;  // maintains power (rms)
+			var size = 4096;
+			var padFac = 1 - (2 / div);
+			var tableBuffer = LocalBuf.newFrom(~myUGenHelperFuncs[\hannPadWindowFunc].value(size, padFac).asWavetable);
+
+			// ----
+			// synthesis
+
+			// amplitude envelope
+			ampEnvSig = EnvGen.kr(
+				Env.linen(riseTime, dur - (riseTime + decayTime), decayTime),  // Env: *linen
+				levelScale: amp,
+				doneAction: Done.freeSelf
+			);  // EnvGen (control rate)
+
+
+			// sample playback
+			playBufSig = PlayBuf.ar(numChannels, bufnum,  BufRateScale.kr(bufnum));
+			// time domain transpose one
+			transSigMul = ~myUGenHelperFuncs[\maCombFunc].value(playBufSig, minFreq, freq, order, order);
+			transSigDiv = transSigMul * Osc.ar(tableBuffer, refFreq / div, mul: normFac);
+
+			// apply -linen envelope
+			transSigDiv = transSigDiv * ampEnvSig;
+
+			// stereo imager
+			panSig = Pan2.ar(transSigMul, pos);  // Pan2 (audio rate)
+
+			// assign to out
+			outSig = panSig;
+
+			Out.ar(
+				outBus,  // out bus - set as an argument
+				outSig
+			)  // Out (audio rate)
+		}
+	),
+		SynthDef.new(
+		\eep598_monoPlayBuf_downUp_3_2,  // name - as Symbol
+		{ |dur = 1.0, gain = 0.0, riseTime = 0.01, decayTime = 0.01, refFreq = 440.0, minRefFreq = 20.0, panAngle = 0,
+			bufnum = 0, outBus = 0|
+
+            // vars for UGens
+            var ampEnvSig;
+            var playBufSig;
+			var transSigMul;
+			var transSigDiv;
+            var panSig;
+            var outSig;
+
+            // vars for control
+
+			var numChannels = 1; // <-- mono buffer - must be set in the UGen graph function!
+            var amp = gain.dbamp;
+            var pos = panAngle.neg / 45;
+
+			// vars for transposition
+			// - multiplication
+			var mul = 3;  // frequency multiplication ratio
+			var minFreq = mul * minRefFreq, freq = mul * refFreq;
+			var order = mul - 1;
+
+			// - division
+			var div = 2;  // frequency division ratio
+			var normFac = div.sqrt;  // maintains power (rms)
+			var size = 4096;
+			var padFac = 1 - (2 / div);
+			var tableBuffer = LocalBuf.newFrom(~myUGenHelperFuncs[\hannPadWindowFunc].value(size, padFac).asWavetable);
+
+			// ----
+			// synthesis
+
+			// amplitude envelope
+			ampEnvSig = EnvGen.kr(
+				Env.linen(riseTime, dur - (riseTime + decayTime), decayTime),  // Env: *linen
+				levelScale: amp,
+				doneAction: Done.freeSelf
+			);  // EnvGen (control rate)
+
+
+			// sample playback
+			playBufSig = PlayBuf.ar(numChannels, bufnum,  BufRateScale.kr(bufnum));
+			// time domain transpose one
+			transSigMul = ~myUGenHelperFuncs[\maCombFunc].value(playBufSig, minFreq, freq, order, order);
+			transSigDiv = transSigMul * Osc.ar(tableBuffer, refFreq / div, mul: normFac);
+
+			// apply -linen envelope
+			transSigDiv = transSigDiv * ampEnvSig;
+
+			// stereo imager
+			panSig = Pan2.ar(transSigMul, pos);  // Pan2 (audio rate)
+
+			// assign to out
+			outSig = panSig;
+
+			Out.ar(
+				outBus,  // out bus - set as an argument
+				outSig
+			)  // Out (audio rate)
+		}
+	),
+		SynthDef.new(
+		\eep598_monoPlayBuf_downUp_5_3,  // name - as Symbol
+		{ |dur = 1.0, gain = 0.0, riseTime = 0.01, decayTime = 0.01, refFreq = 440.0, minRefFreq = 20.0, panAngle = 0,
+			bufnum = 0, outBus = 0|
+
+            // vars for UGens
+            var ampEnvSig;
+            var playBufSig;
+			var transSigMul;
+			var transSigDiv;
+            var panSig;
+            var outSig;
+
+            // vars for control
+
+			var numChannels = 1; // <-- mono buffer - must be set in the UGen graph function!
+            var amp = gain.dbamp;
+            var pos = panAngle.neg / 45;
+
+			// vars for transposition
+			// - multiplication
+			var mul = 5;  // frequency multiplication ratio
+			var minFreq = mul * minRefFreq, freq = mul * refFreq;
+			var order = mul - 1;
+
+			// - division
+			var div = 3;  // frequency division ratio
+			var normFac = div.sqrt;  // maintains power (rms)
+			var size = 4096;
+			var padFac = 1 - (2 / div);
+			var tableBuffer = LocalBuf.newFrom(~myUGenHelperFuncs[\hannPadWindowFunc].value(size, padFac).asWavetable);
+
+			// ----
+			// synthesis
+
+			// amplitude envelope
+			ampEnvSig = EnvGen.kr(
+				Env.linen(riseTime, dur - (riseTime + decayTime), decayTime),  // Env: *linen
+				levelScale: amp,
+				doneAction: Done.freeSelf
+			);  // EnvGen (control rate)
+
+
+			// sample playback
+			playBufSig = PlayBuf.ar(numChannels, bufnum,  BufRateScale.kr(bufnum));
+			// time domain transpose one
+			transSigMul = ~myUGenHelperFuncs[\maCombFunc].value(playBufSig, minFreq, freq, order, order);
+			transSigDiv = transSigMul * Osc.ar(tableBuffer, refFreq / div, mul: normFac);
+
+			// apply -linen envelope
+			transSigDiv = transSigDiv * ampEnvSig;
+
+			// stereo imager
+			panSig = Pan2.ar(transSigMul, pos);  // Pan2 (audio rate)
+
+			// assign to out
+			outSig = panSig;
+
+			Out.ar(
+				outBus,  // out bus - set as an argument
+				outSig
+			)  // Out (audio rate)
+		}
+	),
+		SynthDef.new(
+		\eep598_monoPlayBuf_downUp_15_8,  // name - as Symbol
+		{ |dur = 1.0, gain = 0.0, riseTime = 0.01, decayTime = 0.01, refFreq = 440.0, minRefFreq = 20.0, panAngle = 0,
+			bufnum = 0, outBus = 0|
+
+            // vars for UGens
+            var ampEnvSig;
+            var playBufSig;
+			var transSigMul;
+			var transSigDiv;
+            var panSig;
+            var outSig;
+
+            // vars for control
+
+			var numChannels = 1; // <-- mono buffer - must be set in the UGen graph function!
+            var amp = gain.dbamp;
+            var pos = panAngle.neg / 45;
+
+			// vars for transposition
+			// - multiplication
+			var mul = 15;  // frequency multiplication ratio
+			var minFreq = mul * minRefFreq, freq = mul * refFreq;
+			var order = mul - 1;
+
+			// - division
+			var div = 8;  // frequency division ratio
+			var normFac = div.sqrt;  // maintains power (rms)
+			var size = 4096;
+			var padFac = 1 - (2 / div);
+			var tableBuffer = LocalBuf.newFrom(~myUGenHelperFuncs[\hannPadWindowFunc].value(size, padFac).asWavetable);
+
+			// ----
+			// synthesis
+
+			// amplitude envelope
+			ampEnvSig = EnvGen.kr(
+				Env.linen(riseTime, dur - (riseTime + decayTime), decayTime),  // Env: *linen
+				levelScale: amp,
+				doneAction: Done.freeSelf
+			);  // EnvGen (control rate)
+
+
+			// sample playback
+			playBufSig = PlayBuf.ar(numChannels, bufnum,  BufRateScale.kr(bufnum));
+			// time domain transpose one
+			transSigMul = ~myUGenHelperFuncs[\maCombFunc].value(playBufSig, minFreq, freq, order, order);
+			transSigDiv = transSigMul * Osc.ar(tableBuffer, refFreq / div, mul: normFac);
+
+			// apply -linen envelope
+			transSigDiv = transSigDiv * ampEnvSig;
+
+			// stereo imager
+			panSig = Pan2.ar(transSigMul, pos);  // Pan2 (audio rate)
+
+			// assign to out
+			outSig = panSig;
+
+			Out.ar(
+				outBus,  // out bus - set as an argument
+				outSig
+			)  // Out (audio rate)
+		}
+	),
 	// 2:1 - do
 	// semi-degenerate ratio, e.g., just frequency multiply
 	SynthDef.new(

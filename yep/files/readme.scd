@@ -1,6 +1,6 @@
 /*
-Project Title: myLastName_Assignment_1a
-Date: Wed Apr 29 2026
+Project Title: myLastName_Assignment_2b
+Date: Wed Apr 15 17:21:21 2026
 
 DXARTS 46x: Sound Series Tutorial
 Authors: Joseph Anderson, Wei Yang, et al.
@@ -9,86 +9,76 @@ License: GPLv3 (https://www.gnu.org/licenses/gpl-3.0.en.html)
 */
 
 /*
-────────────────────────────────────────────────────────────────────────────────
-Problem 1a — Single Sinusoid Additive Synthesis: String Ensemble Model
-────────────────────────────────────────────────────────────────────────────────
+For examples see:
 
-INSTRUMENT MODEL
-  SHARC library:  cello_vibrato
-  Rational:  The SHARC cello_vibrato spectrum captures the warm, slightly
-  chorus-like quality of a bowed cello with natural vibrato applied.  It
-  provides a rich set of 20–30 meaningful partials, making it well-suited
-  for modelling a fuller string ensemble by summing independently shaped
-  sinusoids.
-
-SYNTHESIS METHOD
-  Single Sinusoid Additive Synthesis (projectSimpleAS pattern):
-  • One SynthDef instance (\addStringSingle) per partial per note.
-  • The scoring function looks up the SHARC cello_vibrato spectrum for the
-    nearest available MIDI key to each scale degree, then spawns one CtkNote
-    per non-zero partial.
-  • Each CtkNote carries the SHARC-normalised partial amplitude as an argument,
-    so the spectral shape is faithfully reproduced.
-
-SCALE
-  Key:   C major, ascending one octave
-  Notes: C4 D4 E4 F4 G4 A4 B4 C5  (MIDI 60–72)
-  Each note uses its own SHARC .spect lookup (nearest available MIDI key).
-
-REALISM MODIFIERS
-  1. Portamento     Lag.kr on the fundamental frequency argument smooths
-                    discrete pitch steps, approximating a gliding bow.
-  2. Random pitch   LFNoise2 FM deviation on instantaneous partial frequency
-     deviation      models the micro-fluctuation of bow pressure and speed.
-  3. Vibrato        SinOsc LFO on pitch; depth ramped from 0 → target over
-                    vibratoOnset seconds (D&J fig 5.12 / 5.13 style).
-                    Rate ≈ 5.5 Hz, depth ≈ 0.20 semitones.
-  4. Tremolo        LFNoise2 amplitude modulation models bow-pressure flutter.
-  5. Ensemble spread Three-partial detuning via the \detuneStereoBeat basis
-                    function creates a string-section chorus effect.
-
-FREQUENCY-DEPENDENT DECAY  (problem requirement)
-  Each partial k is given its own sustain duration τ_k:
-      τ_k = baseSustain × (1 − decayExp × (k−1) / (numPartials−1))
-  k = 1 (fundamental) → full sustain
-  k = numPartials     → sustain × (1 − decayExp)    [decayExp = 0.68]
-  This causes higher partials to die away before the fundamental, matching
-  the natural physics of a bowed string.  The scoring function computes
-  τ_k and passes it as the `sustain` argument to each CtkNote.
-
-ALTERNATIVE BASIS FUNCTIONS
-  Four basis functions from additiveBasisFuncs.scd are available; selected
-  via ~myData[\basisFunc]:
-    \pure             → SinOsc (clean reference)
-    \detuneStereoBeat → stereo detuning with beats  ← default
-    \ringNoiseMono    → ring-mod with LFNoise2 (warm, grainy)
-    \fmNoiseStereo    → FM noise deviation in quadrature stereo
-
-  The SynthDef builds all four oscillator networks simultaneously and gates
-  the chosen one via an integer \basisIndex argument.  This allows the
-  scoring function to switch basis functions per-note if desired.
-
-FILES
-  readme.scd      this file
-  data.scd        all synthesis parameters (scale, SHARC, envelope, realism)
-  functions.scd   SHARC lookup, partial-sustain, score-building functions
-  synthDefs.scd   \addStringSingle CtkProtoNote / SynthDef
-  scratchPad.scd  interactive RT exploration (boot server first)
-  main.scd        full NRT render pipeline → WAV in sounds/
-  sounds/         output directory (created automatically)
-
-WORKFLOW
-  1. Open scratchPad.scd for interactive exploration (RT).
-  2. Open main.scd and evaluate block-by-block for NRT render.
-  3. To compare basis functions, see the multi-render block in main.scd.
-
-REFERENCES
-  D&J fig 5.12 — vibrato onset envelope shape
-  D&J fig 5.13 — vibrato depth as function of partial number
-  SHARC HelpBrowser.openLink("link::Tutorials/Data/SHARCData::")
-  ProjectSHARCWTsWPs HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectSHARCWTsWPs::")
+HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectSHARCWTsWPs::");
+HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectRissetsBells::");
 */
 
+
+/*
+Assignment 2b — Problem 1b
+Multi-Segment Wavetable Synthesis of a long spectrally modulating tone
+=======================================================================
+
+Problem addressed: 1b — Model a _long_ spectrally modulating instrument tone
+                        via multi-segment Wavetable Synthesis
+
+Source recording:
+  saxophone_A4_very-long_cresc-decresc_normal.mp3
+  London Philharmonia Orchestra Sound Samples Library
+  Accessed via Internet Archive Wayback Machine (https://web.archive.org)
+  Stored as: sounds/saxophone_A4_very-long_cresc-decresc_normal.aiff (converted)
+
+────────────────────────────────────────────────────────────────────────────
+Approach
+────────────────────────────────────────────────────────────────────────────
+Three spectral snapshots are sampled from the recording at positions that
+capture the full dynamic arc of the cresc-decresc tone:
+
+  Snapshot 0  t ≈ 1.0 s   pp (sparse, soft onset)
+  Snapshot 1  t ≈ 5.5 s   ff (loudest point, richest harmonics)
+  Snapshot 2  t ≈ 9.0 s   pp (soft decay)
+
+Each snapshot is Hann-windowed, FFT-analysed (4096-point rfft, 22 harmonics),
+and stored as a CtkBuffer wavetable via CtkBuffer:-sine3.
+
+The SynthDef \synthDef_msWT uses LinSelectX to continuously interpolate
+between the three Osc oscillators, controlled by a multi-segment
+wavetable-selection envelope (wtSelEnv, range 0.0 → 1.0 → 2.0).
+
+A separate multi-segment amplitude envelope (ampEnv) controls overall
+loudness, using \sin curve segments for a natural S-curve swell.
+
+The two envelopes are deliberately offset by wtSelLead seconds:
+the spectrum brightens slightly before the amplitude peak and darkens
+slightly before the amplitude falls — matching the physical behaviour
+of a saxophonist's embouchure during a crescendo.
+
+────────────────────────────────────────────────────────────────────────────
+Realism features (cf. D&J Fig 5.12 / 5.13)
+────────────────────────────────────────────────────────────────────────────
+  Vibrato     Vibrato UGen — delayed onset, slow fade-in,
+              rate and depth variation
+  pitchNoise  LFNoise2.kr — slow random pitch deviation
+  Envelope    \sin curve on cresc/decresc segments
+  wtSelLead   Spectral envelope leads amplitude by ~0.3 s
+
+────────────────────────────────────────────────────────────────────────────
+Scores rendered in main.scd
+────────────────────────────────────────────────────────────────────────────
+  Score A  Single A4 tone — full cresc-decresc arc (9.5 s)
+  Score B  Ascending D major scale (D4–D5), 6 s per note
+
+────────────────────────────────────────────────────────────────────────────
+Workflow
+────────────────────────────────────────────────────────────────────────────
+  1. data.scd    — download MP3, convert to AIFF, run spectral analysis,
+                   build ~wtBufs
+  2. scratchPad.scd — explore parameters interactively on RT server
+  3. main.scd    — render final NRT score to sounds/_<project>.wav
+
+*/
 
 // post project files & folders
 (

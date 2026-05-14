@@ -1,164 +1,135 @@
 /*
-Project Title: myLastName_Assignment_2a
-Date: Wed Apr 15 17:20:57 2026
+download and prep SHARC data for use in wavetable and/or wavepacket project(s)
 
-DXARTS 46x: Sound Series Tutorial
-Authors: Joseph Anderson, Wei Yang, et al.
-Affiliation: DXARTS, University of Washington (https://dxarts.washington.edu/)
-License: GPLv3 (https://www.gnu.org/licenses/gpl-3.0.en.html)
+the resulting data will be returned in ~specDict
 */
 
+// create folder to download data files to
+~dataFolderPath = "~/Desktop/sharcData".standardizePath;  // on the desktop!
+File.mkdir(~dataFolderPath);
+
+
+// download README
 /*
-_main_ is where we'll organize the "main" tasks of our project.
+need this to grab reference frequencies for a chosen instrument
 
+instrument names can be found here:
 */
-
-/*
-For examples see:
-
-HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectSHARCWTsWPs::");
-HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectRissetsBells::");
-*/
+HelpBrowser.goTo("https://github.com/gregsandell/sharc/blob/master/spect/README#L105-L124");
 
 
-///////////////// load functions, data & synthDefs ///////////////
+// choose an instrument
+// ~instName = \bass_clarinet;
+~instName = \violin_martele ;
 
-/*
-If we haven't already, we'll want to load functions, data and synthDefs.
-
-*/
-
-
-// s.quit;
-Quarks.gui
-ServerOptions.new.device
- ;
-ServerOptions.devices;
-s.options.inDevice = nil;
-s.options.outDevice = "Nothing Ear (a)";
-s.options.numInputBusChannels = 0;
-s.options.numOutputBusChannels = 2;
-s.options.sampleRate = 44000;
-
- s.boot;
-(Document.current.dir +/+ "synthDefs.scd").load;
-(Document.current.dir +/+ "functions.scd").load;
+// make instrument target folder
+~instFolderPath = ~dataFolderPath +/+ ~instName;
+File.mkdir(~instFolderPath);
 
 
-///////////////// set RT/NRT environment variables ///////////////
+~pitches = [ \d4, \e4, 'f#4', \g4, \a4, \b4, 'c#5', \d5 ];
 
-~sampleRate = s.sampleRate.isNil.if({   // set sampleRate
-    "% sampleRate is %. Try booting rt server.".format(s, s.sampleRate).warn;
-	"setting SR to 48000".postln;
-	48000
-}, {
-    s.sampleRate.asInteger
-});
-~serverOptions = ServerOptions.new;
-~serverOptions.numOutputBusChannels = 2;  // stereo --> 2 channels
-~headerFormat = "WAV";                    // soundfile header format
-~sampleFormat = "int24";                  // soundfile sample format
+// README file source and target
+~readmeURL = "https://raw.githubusercontent.com/gregsandell/sharc/master/spect/%/CONTENTS".format(~instName.asString);
+~readmePath = ~instFolderPath +/+ PathName.new(~readmeURL).fileName;
 
-~outputFilePath = PathName.new(
-    "%/%/_%.%".format(
-        Document.current.dir,
-        "sounds",
-        PathName.new(Document.current.dir).fileName,
-        ~headerFormat.toLower
-    )
+
+// download...
+// ... and read into ~readme
+Download.new(
+    ~readmeURL,
+    ~readmePath,
+    {  // finishedFunc
+        ~readme = FileReader.read(~readmePath, skipBlanks: true);
+    }, {  // errorFunc
+        Error.new(
+            "Failed to download!\n\trequestedURL: %\n\tlocalPath: %\n".format(~readmeURL, ~readmePath)
+        ).throw
+    }, { |rec, tot|  // progressFunc
+        "\t % of %".format(rec, tot).postln;
+    }
 );
 
 
-///////////////// set scoring parameter values //////////////////
+// the raw line by line readme as array
+~readme;
 
 /*
-create score(s)...
-
-e.g.:
+The details of the meaning of these lines can be found here:
 */
+HelpBrowser.goTo("https://github.com/gregsandell/sharc/blob/master/spect/README#L307-L330");
 
-~mainScore = CtkScore.new;
 
-~rootFreq    = 440.0;
-~baseDur     = 3.0;
-~numPartials = 12;
-~durExp      = 0.75;
-~startTime   = 0.0;
+// create and fill a dictionary, so as to easily parse ~readme
+/*
+We're interested in capturing is...
 
-// loop over partials — one synth per partial
-~numPartials.do({ |i|
-    var partialNum  = i + 1;
-    var partialFreq = ~rootFreq * partialNum;
-    var partialDur  = ~baseDur * (1 / partialNum.pow(~durExp));
-    var partialGain = -14.0 - (partialNum * 3.0);
+Column 6: The actual fundamental frequency, as measured from the samples for this tone.
 
-    ~mainScore.add(
-        ~myProtoNotes[\synthDef_assignment1A].note(~startTime, partialDur)
-        .dur_(partialDur)
-        .gain_(partialGain)
-        .freq_(partialFreq)
-		.phase_(0)
-		.beats_(1.0)
-        .riseTime_(0.1)
-        .decayTime_((0.1).min(partialDur * 0.5))
-        .noiseFreq_(0.5)
-        .panAngle_(0)
-        .outBus_(0)
-    )
+... which is the reference frequence of the measured spectrum.
+*/
+~readmeDict = Dictionary.new;
+~readme.do({ |item|
+    ~readmeDict.put(item.at(0).asSymbol, item.at(5).asFloat)
+});
+
+// let's see...
+~readmeDict;
+
+// find reference frequencies
+~refFreqs = ~readmeDict.atAll(~pitches);
+
+
+/*
+Now we're ready to read the spectral data and fill a dictionary with the SHARC data we'd like to use
+*/
+~specDict = Dictionary.new;
+~specDict.put(~instName, Dictionary.new);
+// convert pitches to SHARC names for #
+// # --> %23
+/*
+needed to reference actual url names
+*/
+~pitchesSharc = ~pitches.collect({ |item|
+    item.asString.replace("#", "%23")
 });
 
 
-///////////////// render the main score //////////////////
 
+// download SHARC spec files
+~pitchesSharc.do({ |item, i|
+    var requestedURL = "https://raw.githubusercontent.com/gregsandell/sharc/master/spect/%/%.spect".format(~instName.asString, item.asString);
+    var targetPath = ~instFolderPath +/+ PathName.new(PathName.new(requestedURL).fileName).fileName;
 
-// write score to sound file with the -write message, and then open with helper score function, \scoreWriteOpenSFPlayer
-(
-    ~mainScore.write(
-        path: ~outputFilePath.fullPath,
-        sampleRate: ~sampleRate,
-        headerFormat: ~headerFormat,
-        sampleFormat: ~sampleFormat,
-        options: ~serverOptions,
-        action: ~myScoreFuncs[\scoreWriteOpenSFPlayer].value(~mainScore, ~outputFilePath)
+    Download.new(
+        requestedURL,
+        targetPath,
+        {  // finishedFunc
+            var spectData = FileReader.read(targetPath, skipBlanks: true);
+            var harmsGainsPhases = spectData.collect({ |item, i|  // add harmonic numbers & collect data as floats
+                [ i + 1, item[0].asFloat, (item[1].asFloat + 0.5pi).wrap(pi.neg, pi) ]  // update phase from cosine to sine basis
+            });
+            var harmsAmpsPhases = harmsGainsPhases.collect({ |item|  // convert gain in dB to amplitude scalar
+                [ item[0], item[1].dbamp, item[2] ]
+            });
+
+			~specDict[~instName].put(
+                ~pitches.at(i),
+                Dictionary.newFrom([
+                    \refFreq, ~refFreqs.at(i), \harmsAmpsPhases, harmsAmpsPhases,
+                ])
+            )
+        }, {  // errorFunc
+            Error.new(
+                "Failed to download!\n\trequestedURL: %\n\tlocalPath: %\n".format(requestedURL, targetPath)
+            ).throw
+        }, { |rec, tot|  // progressFunc
+            "\t % of %".format(rec, tot).postln;
+        }
     )
-);
-
-/*
-NOTE:
-
-we could synthesize and then open "by hand"...
-*/
-/*
-(
-~mainScore.write(
-path: ~outputFilePath.fullPath,
-sampleRate: ~sampleRate,
-headerFormat: ~headerFormat,
-sampleFormat: ~sampleFormat,
-options: ~serverOptions,
-)
-);
-
-// wait until final nextOSCPacket is posted...
-"Wait until nextOSCPacket % is posted before opening SFPlayer.".format(Score.new(~mainScore.score).endTime).postln;
-
-// ... open in SFPlayer...
-SFPlayer.new(~outputFilePath.fullPath).gui;
-*/
+});
 
 
-// ... when finished, free buffers...
-/*
-it is always good practice to free up buffers when finished!!
-- if we want to continue modifying the scores, it is fine to leave the buffers loaded
-*/
-
-/*
-NOTE:
-
-If we've only used the non-realtime server, this step is not necessary.
-
-For instance, if we've only used -write rather than -play, we don't need to free buffers.
-
-*/
-  
+// now we have the SHARC spectral data!
+~specDict;
+~specDict[\violin_martele].keys.postln;

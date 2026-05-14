@@ -1,6 +1,6 @@
 /*
-Project Title: myLastName_Assignment_1a
-Date: Wed Apr 29 2026
+Project Title: myLastName_Assignment_2b
+Date: Wed Apr 15 17:21:21 2026
 
 DXARTS 46x: Sound Series Tutorial
 Authors: Joseph Anderson, Wei Yang, et al.
@@ -9,245 +9,213 @@ License: GPLv3 (https://www.gnu.org/licenses/gpl-3.0.en.html)
 */
 
 /*
-_scratchPad_: interactive exploration and RT testing.
-
-Evaluate sections in order.  Boot the RT server before playing sounds.
+scratch here
 */
 
 /*
 For examples see:
+
 HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectSHARCWTsWPs::");
 HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectRissetsBells::");
 */
 
 
+/*
+_scratchPad_ is the place to write test / scratch code, testing out ideas and
+working on code that we'll later formally include in the project.
+
+Work through these blocks top-to-bottom. Each block is self-contained.
+Prerequisites: evaluate data.scd fully before starting here.
+*/
+
 /////////////// explore interaction with sclang & interpreter ///////////////
 
-// ─────────────────────────────────────────────────────────────────────────────
-// A. Load project files
-// ─────────────────────────────────────────────────────────────────────────────
+// -------------------------
+// load functions
 
 (Document.current.dir +/+ "functions.scd").load;
-(Document.current.dir +/+ "data.scd").load;
-(Document.current.dir +/+ "synthDefs.scd").load;
 
-currentEnvironment.keys.postln;
+currentEnvironment.keys;
 
 
-// ─────────────────────────────────────────────────────────────────────────────
-// B. Inspect SHARC data for the scale
-// ─────────────────────────────────────────────────────────────────────────────
+// -------------------------
+// load data
 
-// Post SHARC spectrum info for every scale degree
-(
-~myData[\scaleMidi].doWithIndex { |midi, i|
-    var spect = ~myScoreFuncs[\sharcLookup].(midi, ~myData[\maxPartials]);
-    "%-% MIDI % → SHARC key %, % partials above floor".format(
-        ~myData[\scaleNames][i], " ".dup(4 - ~myData[\scaleNames][i].size).join,
-        midi, spect[\midiKey], spect[\numPartials]
-    ).postln;
-    "  amps: %".format(
-        spect[\amps].collect { |a| a.round(0.001) }
-    ).postln;
-}
-)
+// (data.scd must have already been evaluated to populate ~saxData / ~wtBufs)
 
-// Check frequency-dependent sustain for first note (C4, 12 partials)
-(
-var spect = ~myScoreFuncs[\sharcLookup].(60, ~myData[\maxPartials]);
-var n     = spect[\numPartials];
-"Frequency-dependent sustain for C4 (% partials):".format(n).postln;
-n.do { |i|
-    var k   = i + 1;
-    var tau = ~myScoreFuncs[\partialSustain].(
-        k, n, ~myData[\noteDur], ~myData[\partialDecayExp]
-    );
-    "  partial % (%.1f Hz): τ = %.3f s".format(k, 261.63 * k, tau).postln
-}
-)
+// inspect
+~saxData.keys;
+~saxData[\wtBufs].size;          // should be 3
+~saxData[\fundamentalFreq];      // 440.0
+
+
+// -------------------------
+// inspect data
+
+~saxData[\snapTimes];            // [ 1.0, 5.5, 9.0 ]
+~saxData[\snapData][0];          // pp onset harmonics
+~saxData[\snapData][1];          // ff peak harmonics
+~saxData[\snapData][2];          // pp decay harmonics
 
 
 /////////////// explore interaction with scsynth & interpreter ///////////////
 
-// ─────────────────────────────────────────────────────────────────────────────
-// C. Boot RT server and open scopes
-// ─────────────────────────────────────────────────────────────────────────────
 
+// -------------------------
+// load synthDefs (& ctkProtoNotes)
+
+(Document.current.dir +/+ "synthDefs.scd").load;
+
+currentEnvironment.keys;
+
+
+// -------------------------
+// list project synthDefs
+
+~myProtoNotes.keys;   // should contain \synthDef_msWT
+
+
+// -------------------------
+// play w/ synthDef(s)
+
+// boot (realtime) server
 s.boot;
 
+
+// -------------------------
+// prepare wavetable(s) for synthesis
+
+// confirm wavetable buffers are loaded
+~wtBufs = ~saxData[\wtBufs];
+~wtBufs.do({ |buf, i| "buf %: bufnum = %".format(i, buf.bufnum).postln });
+
+
+// -------------------------
+// synthesize some sounds (via -note)
+
+// let's first start up some scopes
 FreqScope.new;
 Stethoscope.new;
 
 
-// ─────────────────────────────────────────────────────────────────────────────
-// D. RT playback — single note, all partials  (middle C, cello_vibrato)
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Audition each wavetable individually ──────────────────────────────────
+// Hear the spectral difference between pp and ff snapshots:
 
-// Build a mini CtkScore for one note and play it in RT
+{ Osc.ar(~wtBufs[0].bufnum, 440) * 0.12 ! 2 }.play;   // pp onset
+s.freeAll;
+
+{ Osc.ar(~wtBufs[1].bufnum, 440) * 0.12 ! 2 }.play;   // ff peak
+s.freeAll;
+
+{ Osc.ar(~wtBufs[2].bufnum, 440) * 0.12 ! 2 }.play;   // pp decay
+s.freeAll;
+
+
+// ── Manual LinSelectX sweep — hear the spectral transition ─────────────────
+// Sweeps pp → ff → pp over 8 seconds:
 (
-var midi    = 60;   // C4
-var spect   = ~myScoreFuncs[\sharcLookup].(midi, ~myData[\maxPartials]);
-var amps    = spect[\amps];
-var nP      = spect[\numPartials];
-var fund    = midi.midicps;
-var score   = CtkScore.new;
-var bIdx    = ~myScoreFuncs[\basisIndex].(~myData[\basisFunc]);
-
-amps.doWithIndex { |a, i|
-    var k   = i + 1;
-    (a > 0).if {
-        var tau = ~myScoreFuncs[\partialSustain].(
-            k, nP, ~myData[\noteDur], ~myData[\partialDecayExp]
+    {
+        var sel = EnvGen.kr(
+            Env([ 0, 1, 2 ], [ 4, 4 ], \sin),
+            doneAction: Done.freeSelf
         );
-        var dur = ~myData[\attack] + tau + ~myData[\release];
-        var pan = (i / nP.max(1) - 0.5) * ~myData[\ensemblePan];
-
-        score.add(
-            ~myProtoNotes[\addStringSingle].note(startTime: 0.1, duration: dur)
-            .partialNum_(k)
-            .fundamental_(fund)
-            .partialAmp_(a)
-            .peakAmp_(~myData[\peakAmp])
-            .attack_(~myData[\attack])
-            .decay_(~myData[\decay])
-            .sustainLvl_(~myData[\sustainLvl])
-            .sustain_(tau)
-            .release_(~myData[\release])
-            .portamento_(~myData[\portamento])
-            .randDevHz_(~myData[\randDevHz])
-            .randDevRate_(~myData[\randDevRate])
-            .vibratoRate_(~myData[\vibratoRate])
-            .vibratoDepth_(~myData[\vibratoDepth])
-            .vibratoOnset_(~myData[\vibratoOnset])
-            .tremoloDepth_(~myData[\tremoloDepth])
-            .tremoloRate_(~myData[\tremoloRate])
-            .ensembleBeats_(~myData[\ensembleBeats])
-            .basisNoiseFreq_(fund * k / 20.0)
-            .basisDetuneHz_(~myData[\randDevHz] * k.sqrt)
-            .basisIndex_(bIdx)
-            .pan_(pan)
-        )
-    }
-};
-
-"Playing C4 — % partials, basis: %".format(nP, ~myData[\basisFunc]).postln;
-score.play(s)
-)
+        var sig = LinSelectX.ar(sel, [
+            Osc.ar(~wtBufs[0].bufnum, 440),
+            Osc.ar(~wtBufs[1].bufnum, 440),
+            Osc.ar(~wtBufs[2].bufnum, 440)
+        ]);
+        sig * 0.15 ! 2
+    }.play
+);
 
 
-// ─────────────────────────────────────────────────────────────────────────────
-// E. Compare basis functions — play same note with each
-// ─────────────────────────────────────────────────────────────────────────────
-
-/*
-Evaluate this block to hear all four basis functions back-to-back (C4).
-Each plays for ~noteDur + release seconds with a short gap.
-*/
+// ── Play the full \synthDef_msWT model via CtkNote ─────────────────────────
 (
-var midi    = 60;
-var gap     = ~myData[\noteDur] + ~myData[\release] + 0.5;
-var bases   = [\pure, \detuneStereoBeat, \ringNoiseMono, \fmNoiseStereo];
-
-bases.doWithIndex { |sym, i|
-    ~myData[\basisFunc] = sym;
-
-    var spect = ~myScoreFuncs[\sharcLookup].(midi, ~myData[\maxPartials]);
-    var amps  = spect[\amps];
-    var nP    = spect[\numPartials];
-    var fund  = midi.midicps;
-    var score = CtkScore.new;
-    var bIdx  = ~myScoreFuncs[\basisIndex].(sym);
-    var t0    = 0.1;
-
-    amps.doWithIndex { |a, j|
-        var k   = j + 1;
-        (a > 0).if {
-            var tau = ~myScoreFuncs[\partialSustain].(
-                k, nP, ~myData[\noteDur], ~myData[\partialDecayExp]
-            );
-            score.add(
-                ~myProtoNotes[\addStringSingle].note(startTime: t0, duration: tau + ~myData[\release])
-                .partialNum_(k).fundamental_(fund).partialAmp_(a)
-                .peakAmp_(~myData[\peakAmp])
-                .attack_(~myData[\attack]).decay_(~myData[\decay])
-                .sustainLvl_(~myData[\sustainLvl]).sustain_(tau).release_(~myData[\release])
-                .portamento_(~myData[\portamento])
-                .randDevHz_(~myData[\randDevHz]).randDevRate_(~myData[\randDevRate])
-                .vibratoRate_(~myData[\vibratoRate]).vibratoDepth_(~myData[\vibratoDepth])
-                .vibratoOnset_(~myData[\vibratoOnset])
-                .tremoloDepth_(~myData[\tremoloDepth]).tremoloRate_(~myData[\tremoloRate])
-                .ensembleBeats_(~myData[\ensembleBeats])
-                .basisNoiseFreq_(fund * k / 20.0)
-                .basisDetuneHz_(~myData[\randDevHz] * k.sqrt)
-                .basisIndex_(bIdx)
-                .pan_((j / nP.max(1) - 0.5) * ~myData[\ensemblePan])
-            )
-        }
-    };
-
-    AppClock.sched(i * gap, {
-        "Playing basis: %".format(sym).postln;
-        score.play(s);
-        nil
-    })
-};
-
-// restore chosen basis
-~myData[\basisFunc] = \detuneStereoBeat;
-)
+    ~myProtoNotes[\synthDef_msWT].note(
+        starttime: 0.0,
+        duration:  9.5
+    )
+    .dur_(9.5)
+    .gain_(-12.0)
+    .freq_(440.0)
+    .fundamentalFreq_(440.0)
+    .riseTime_(0.10)
+    .decayTime_(0.30)
+    .crescTime_(4.2)
+    .decrescTime_(4.6)
+    .vibratoRate_(5.5)
+    .vibratoDepth_(0.40)
+    .vibratoDelay_(0.80)
+    .vibratoOnset_(0.60)
+    .pitchNoise_(0.08)
+    .wtSelLead_(0.30)
+    .buf0_(~wtBufs[0].bufnum)
+    .buf1_(~wtBufs[1].bufnum)
+    .buf2_(~wtBufs[2].bufnum)
+    .panAngle_(0.0)
+    .outBus_(0)
+    .play(s);
+);
 
 
-// ─────────────────────────────────────────────────────────────────────────────
-// F. Spot-check frequency-dependent decay (C4 partials 1, 6, 12)
-// ─────────────────────────────────────────────────────────────────────────────
+// ── Experiment: vary wtSelLead ─────────────────────────────────────────────
+// 0.0 = spectrum and amplitude move together
+// 0.5 = spectrum leads by half a second (try this vs 0.0 — audible difference)
 (
-var midi = 60;
-var fund = midi.midicps;
-var spect = ~myScoreFuncs[\sharcLookup].(midi, ~myData[\maxPartials]);
-var nP   = spect[\numPartials];
-var bIdx = ~myScoreFuncs[\basisIndex].(~myData[\basisFunc]);
-
-[1, (nP / 2).round.asInteger, nP].do { |k|
-    var a   = spect[\amps][k - 1];
-    var tau = ~myScoreFuncs[\partialSustain].(k, nP, ~myData[\noteDur], ~myData[\partialDecayExp]);
-    (a > 0).if {
-        var score = CtkScore.new;
-        score.add(
-            ~myProtoNotes[\addStringSingle].note(startTime: 0.05, duration: tau + ~myData[\release])
-            .partialNum_(k).fundamental_(fund).partialAmp_(a)
-            .peakAmp_(0.3)
-            .attack_(~myData[\attack]).decay_(~myData[\decay])
-            .sustainLvl_(~myData[\sustainLvl]).sustain_(tau).release_(~myData[\release])
-            .portamento_(~myData[\portamento])
-            .randDevHz_(~myData[\randDevHz]).randDevRate_(~myData[\randDevRate])
-            .vibratoRate_(~myData[\vibratoRate]).vibratoDepth_(~myData[\vibratoDepth])
-            .vibratoOnset_(~myData[\vibratoOnset])
-            .tremoloDepth_(~myData[\tremoloDepth]).tremoloRate_(~myData[\tremoloRate])
-            .ensembleBeats_(~myData[\ensembleBeats])
-            .basisNoiseFreq_(fund * k / 20.0)
-            .basisDetuneHz_(~myData[\randDevHz] * k.sqrt)
-            .basisIndex_(bIdx)
-            .pan_(0.0)
-        );
-        "Partial %: %.1f Hz, τ = %.3f s".format(k, fund * k, tau).postln;
-
-        AppClock.sched(k * (tau + 0.5), {
-            score.play(s);
-            nil
-        })
-    }
-}
-)
+    ~myProtoNotes[\synthDef_msWT].note(starttime: 0.0, duration: 9.5)
+    .dur_(9.5).gain_(-12.0)
+    .freq_(440.0).fundamentalFreq_(440.0)
+    .riseTime_(0.10).decayTime_(0.30)
+    .crescTime_(4.2).decrescTime_(4.6)
+    .vibratoRate_(5.5).vibratoDepth_(0.40)
+    .vibratoDelay_(0.80).vibratoOnset_(0.60)
+    .pitchNoise_(0.08)
+    .wtSelLead_(0.0)   // ← change me: try 0.0, 0.3, 0.6
+    .buf0_(~wtBufs[0].bufnum)
+    .buf1_(~wtBufs[1].bufnum)
+    .buf2_(~wtBufs[2].bufnum)
+    .panAngle_(0.0).outBus_(0)
+    .play(s);
+);
 
 
-// ─────────────────────────────────────────────────────────────────────────────
-// G. Full RT scale playback (preview before NRT render)
-// ─────────────────────────────────────────────────────────────────────────────
-
+// ── Transpose to different pitches ────────────────────────────────────────
+// D4 — below the recording pitch
 (
-var score = ~myScoreFuncs[\scoreScale].(~myData, ~myProtoNotes);
-score.play(s)
-)
+    ~myProtoNotes[\synthDef_msWT].note(starttime: 0.0, duration: 6.0)
+    .dur_(6.0).gain_(-12.0)
+    .freq_(293.66).fundamentalFreq_(440.0)
+    .riseTime_(0.08).decayTime_(0.25)
+    .crescTime_(2.4).decrescTime_(2.7)
+    .vibratoRate_(5.5).vibratoDepth_(0.35)
+    .vibratoDelay_(0.70).vibratoOnset_(0.50)
+    .pitchNoise_(0.08).wtSelLead_(0.25)
+    .buf0_(~wtBufs[0].bufnum)
+    .buf1_(~wtBufs[1].bufnum)
+    .buf2_(~wtBufs[2].bufnum)
+    .panAngle_(0.0).outBus_(0)
+    .play(s);
+);
 
-// when we're all finished, free buffers (none used here — no action needed)
-// s.freeAll;
+// D5 — above the recording pitch
+(
+    ~myProtoNotes[\synthDef_msWT].note(starttime: 0.0, duration: 6.0)
+    .dur_(6.0).gain_(-12.0)
+    .freq_(587.33).fundamentalFreq_(440.0)
+    .riseTime_(0.08).decayTime_(0.25)
+    .crescTime_(2.4).decrescTime_(2.7)
+    .vibratoRate_(5.5).vibratoDepth_(0.35)
+    .vibratoDelay_(0.70).vibratoOnset_(0.50)
+    .pitchNoise_(0.08).wtSelLead_(0.25)
+    .buf0_(~wtBufs[0].bufnum)
+    .buf1_(~wtBufs[1].bufnum)
+    .buf2_(~wtBufs[2].bufnum)
+    .panAngle_(0.0).outBus_(0)
+    .play(s);
+);
+
+
+// when we're all finished, we should "clean up" and free up the space buffers use on the server
+
+// free... when finished...
+s.freeAll;

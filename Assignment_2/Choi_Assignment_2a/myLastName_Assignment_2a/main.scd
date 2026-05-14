@@ -29,11 +29,12 @@ If we haven't already, we'll want to load functions, data and synthDefs.
 */
 
 
-// s.boot;
+ s.boot;
 // s.quit;
 
 
 (Document.current.dir +/+ "synthDefs.scd").load;
+(Document.current.dir +/+ "functions.scd").load;
 
 
 ///////////////// set RT/NRT environment variables ///////////////
@@ -67,41 +68,34 @@ create score(s)...
 
 e.g.:
 */
-
+// create score first
 ~mainScore = CtkScore.new;
 
-~rootFreq    = 440.0;
-~baseDur     = 3.0;
-~numPartials = 12;
-~durExp      = 0.75;
-~startTime   = 0.0;
+~myBuffers = ~myBufferFuncs[\fillWavetables].value(
+    2048,
+    [\violin_martele],
+    ~pitches,
+    ~specDict,
+    false,
+    false
+);
 
-// loop over partials — one synth per partial
-~numPartials.do({ |i|
-    var partialNum  = i + 1;
-    var partialFreq = ~rootFreq * partialNum;
-    var partialDur  = ~baseDur * (1 / partialNum.pow(~durExp));
-    var partialGain = -14.0 - (partialNum * 3.0);
-
-    ~mainScore.add(
-        ~myProtoNotes[\synthDef_assignment1A].note(~startTime, partialDur)
-        .dur_(partialDur)
-        .gain_(partialGain)
-        .freq_(partialFreq)
-		.phase_(0)
-		.beats_(1.0)
-        .riseTime_(0.1)
-        .decayTime_((0.1).min(partialDur * 0.5))
-        .noiseFreq_(0.5)
-        .panAngle_(0)
-        .outBus_(0)
-    )
-});
-
+~mainScore = ~myWTScoringFuncs[\additiveScale].value(
+    start: 0.0,
+    noteDur: 1.5,
+    noteGain: -10.0,
+    noteRiseTime: 0.1,
+    noteDecayTime: 0.1,
+    durExp: 0.75,
+    pitches: ~pitches,
+    specDict: ~specDict,
+    instrName: \violin_martele,
+    buffers: ~myBuffers,
+    outBus: 0,
+    ctkProtoNotes: ~myProtoNotes
+);
 
 ///////////////// render the main score //////////////////
-
-
 // write score to sound file with the -write message, and then open with helper score function, \scoreWriteOpenSFPlayer
 (
     ~mainScore.write(
@@ -113,7 +107,6 @@ e.g.:
         action: ~myScoreFuncs[\scoreWriteOpenSFPlayer].value(~mainScore, ~outputFilePath)
     )
 );
-
 /*
 NOTE:
 
