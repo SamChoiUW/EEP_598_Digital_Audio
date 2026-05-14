@@ -70,7 +70,7 @@ let's collect ugenGraphs by multiply ratio to try this out....
 
 ~numMuls = 8;
 ~muls = Array.series(~numMuls, 1);  // fundamental frequnecy multiply ratios
-
+~
 // ... test with Saw source, first
 (
 ~ugenGraphFuncs = ~muls.collect({ |mul|
