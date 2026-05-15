@@ -41,8 +41,6 @@ HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectRissetsBells::");
 		(size * padFac).asInteger
 	)
 };
-
-
 // -------------
 // ~myUGenHelperFuncs
 

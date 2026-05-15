@@ -27,10 +27,11 @@ HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectRissetsBells::");
 If we haven't already, we'll want to load functions, data and synthDefs.
 
 */
+s.boot;
+
+
 (Document.current.dir +/+ "functions.scd").load;
 (Document.current.dir +/+ "synthDefs.scd").load;
-
-
 
 ///////////////// set RT/NRT environment variables ///////////////
 
@@ -112,11 +113,20 @@ NOTE: comment the below note events out...
 */
 
 // downUp...
+
+// synthesize ascending scales here... 2x!
+/*
+Ascending ratios:
+1:1, 9:8, 5:4, 4:3, 3:2, 5:3, 15:8, 2:1  // do, re, mi, fa, sol, la, ti, do
+
+*/
 ~start = 0.0;
 ~gain = 6.0;
 ~refFreq = 261.5;
 ~buffer = ~mySFBufferDict[\trumpet_C4_1_forte_normal];
-~synthDefKeys = [ \eep598_monoPlayBuf_downUp_1_1, \eep598_monoPlayBuf_downUp_2_1 ];
+//~synthDefKeys = [ \eep598_monoPlayBuf_downUp_1_1, \eep598_monoPlayBuf_downUp_9_8, \eep598_monoPlayBuf_downUp_5_4, \eep598_monoPlayBuf_downUp_4_3, \eep598_monoPlayBuf_downUp_3_2, \eep598_monoPlayBuf_downUp_5_3, \eep598_monoPlayBuf_downUp_15_8,\eep598_monoPlayBuf_downUp_2_1 ];
+
+~synthDefKeys = [ \eep598_monoPlayBuf_downUp_1_1, \eep598_monoPlayBuf_downUp_9_8 ];
 
 ~synthDefKeys.do({ |synthDefKey, i|
 	~mainScore.add(
@@ -130,8 +140,6 @@ NOTE: comment the below note events out...
 		.bufnum_(~buffer.bufnum)
 	)
 });
-
-
 // ... upDown
 ~start = 0.0 + (~synthDefKeys.size * ~buffer.duration);
 ~gain = 6.0;
@@ -154,12 +162,6 @@ NOTE: comment the below note events out...
 
 
 
-// synthesize ascending scales here... 2x!
-/*
-Ascending ratios:
-1:1, 9:8, 5:4, 4:3, 3:2, 5:3, 15:8, 2:1  // do, re, mi, fa, sol, la, ti, do
-
-*/
 
 
 
