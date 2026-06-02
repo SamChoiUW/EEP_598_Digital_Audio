@@ -1,0 +1,32 @@
+/*
+Project Title: projectPAGS
+Date: Wed May 13 12:04:17 2026
+
+EE P 598a: Advanced Topics In Electrical And Computer Engineering (Introduction to Digital Audio)
+Authors: Joseph Anderson, Junkai Wu, et al.
+Affiliation: DXARTS, University of Washington (https://dxarts.washington.edu/)
+License: GPLv3 (https://www.gnu.org/licenses/gpl-3.0.en.html)
+*/
+
+/*
+For examples see:
+
+HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectSHARCWTsWPs::");
+HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectRissetsBells::");
+*/
+
+
+/*
+DESCRIBE project here
+
+*/
+
+// post project files & folders
+(
+    "Files & folders in this project:\n".postln;
+    PathName.new(
+        Document.current.dir
+    ).streamTree(Post, 1);
+    "".postln
+);
+  

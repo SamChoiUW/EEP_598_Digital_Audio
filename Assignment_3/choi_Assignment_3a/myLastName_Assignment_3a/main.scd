@@ -124,9 +124,8 @@ Ascending ratios:
 ~gain = 6.0;
 ~refFreq = 261.5;
 ~buffer = ~mySFBufferDict[\trumpet_C4_1_forte_normal];
-//~synthDefKeys = [ \eep598_monoPlayBuf_downUp_1_1, \eep598_monoPlayBuf_downUp_9_8, \eep598_monoPlayBuf_downUp_5_4, \eep598_monoPlayBuf_downUp_4_3, \eep598_monoPlayBuf_downUp_3_2, \eep598_monoPlayBuf_downUp_5_3, \eep598_monoPlayBuf_downUp_15_8,\eep598_monoPlayBuf_downUp_2_1 ];
+~synthDefKeys = [ \eep598_monoPlayBuf_downUp_1_1, \eep598_monoPlayBuf_downUp_9_8, \eep598_monoPlayBuf_downUp_5_4, \eep598_monoPlayBuf_downUp_4_3, \eep598_monoPlayBuf_downUp_3_2, \eep598_monoPlayBuf_downUp_5_3, \eep598_monoPlayBuf_downUp_15_8,\eep598_monoPlayBuf_downUp_2_1 ];
 
-~synthDefKeys = [ \eep598_monoPlayBuf_downUp_1_1, \eep598_monoPlayBuf_downUp_9_8 ];
 
 ~synthDefKeys.do({ |synthDefKey, i|
 	~mainScore.add(
@@ -145,8 +144,8 @@ Ascending ratios:
 ~gain = 6.0;
 ~refFreq = 261.5;
 ~buffer = ~mySFBufferDict[\trumpet_C4_1_forte_normal];
-~synthDefKeys = [ \eep598_monoPlayBuf_upDown_1_1, \eep598_monoPlayBuf_upDown_2_1 ];
 
+~synthDefKeys = [ \eep598_monoPlayBuf_upDown_1_1, \eep598_monoPlayBuf_upDown_9_8, \eep598_monoPlayBuf_upDown_5_4, \eep598_monoPlayBuf_upDown_4_3, \eep598_monoPlayBuf_upDown_3_2, \eep598_monoPlayBuf_upDown_5_3, \eep598_monoPlayBuf_upDown_15_8,\eep598_monoPlayBuf_upDown_2_1 ];
 ~synthDefKeys.do({ |synthDefKey, i|
 	~mainScore.add(
 		~myPlayBufTransPNotes[synthDefKey].note(

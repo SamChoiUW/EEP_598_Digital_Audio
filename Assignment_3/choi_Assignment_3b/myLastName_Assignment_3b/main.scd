@@ -1,5 +1,5 @@
 /*
-Project Title: Assignment 3b
+Project Title: Choi Assignment 3b
 Date: Mon May  4 13:52:09 2026
 
 EE P 598a: Advanced Topics In Electrical And Computer Engineering (Introduction to Digital Audio)
@@ -27,6 +27,7 @@ HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectRissetsBells::");
 If we haven't already, we'll want to load functions, data and synthDefs.
 
 */
+s.boot;
 (Document.current.dir +/+ "functions.scd").load;
 (Document.current.dir +/+ "synthDefs.scd").load;
 
@@ -116,7 +117,7 @@ NOTE: comment the below note events out...
 ~gain = 6.0;
 ~refFreq = 261.5;
 ~buffer = ~mySFBufferDict[\trumpet_C4_1_forte_normal];
-~synthDefKeys = [ \eep598_monoPlayBuf_downUp_1_1, \eep598_monoPlayBuf_downUp_1_2 ];
+~synthDefKeys = [ \eep598_monoPlayBuf_downUp_1_1,\eep598_monoPlayBuf_downUp_15_16,\eep598_monoPlayBuf_downUp_5_6,\eep598_monoPlayBuf_downUp_3_4,\eep598_monoPlayBuf_downUp_2_3,\eep598_monoPlayBuf_downUp_5_8,\eep598_monoPlayBuf_downUp_9_16, \eep598_monoPlayBuf_downUp_1_2 ];
 
 ~synthDefKeys.do({ |synthDefKey, i|
 	~mainScore.add(
@@ -137,7 +138,7 @@ NOTE: comment the below note events out...
 ~gain = 6.0;
 ~refFreq = 261.5;
 ~buffer = ~mySFBufferDict[\trumpet_C4_1_forte_normal];
-~synthDefKeys = [ \eep598_monoPlayBuf_upDown_1_1, \eep598_monoPlayBuf_upDown_1_2 ];
+~synthDefKeys = [ \eep598_monoPlayBuf_upDown_1_1,\eep598_monoPlayBuf_upDown_15_16,\eep598_monoPlayBuf_upDown_5_6,\eep598_monoPlayBuf_upDown_3_4,\eep598_monoPlayBuf_upDown_2_3,\eep598_monoPlayBuf_upDown_5_8,\eep598_monoPlayBuf_upDown_9_16, \eep598_monoPlayBuf_upDown_1_2 ];
 
 ~synthDefKeys.do({ |synthDefKey, i|
 	~mainScore.add(

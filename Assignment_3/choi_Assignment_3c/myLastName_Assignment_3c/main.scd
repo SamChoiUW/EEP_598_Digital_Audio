@@ -1,5 +1,5 @@
 /*
-Project Title: Assignment 3c
+Project Title: CHOI Assignment 3c
 Date: Mon May  4 13:52:09 2026
 
 EE P 598a: Advanced Topics In Electrical And Computer Engineering (Introduction to Digital Audio)
@@ -27,6 +27,7 @@ HelpBrowser.openLink("link::Tutorials/Getting Practice/ProjectRissetsBells::");
 If we haven't already, we'll want to load functions, data and synthDefs.
 
 */
+s.boot;
 (Document.current.dir +/+ "functions.scd").load;
 (Document.current.dir +/+ "synthDefs.scd").load;
 
@@ -112,8 +113,52 @@ Ascending ratios:
 
 */
 
+~pitchRatios   = [1,9/8,5/4,4/3,3/2,5/3,15/8,2];
+~formantRatios = [1,9/8,5/4,4/3,3/2,5/3,15/8,2];
+
+~start = 0.0;
+~gain = 6.0;
+~refFreq = 261.5;
+~buffer = ~mySFBufferDict[\trumpet_C4_1_forte_normal];
+~synthDefKeys = \eep598_monoPlayBuf;
 
 
+~pitchRatios.do({ |pitchRatios, i|
+	~mainScore.add(
+		~myPlayBufTransPNotes[~synthDefKeys].note(
+			starttime: ~start + (i * ~buffer.duration),
+			duration: ~buffer.duration
+		)
+		.pitchRatio_(pitchRatios)
+		.formantRatio_(1)
+		.dur_(~buffer.duration)
+		.gain_(~gain)
+		.refFreq_(~refFreq)
+		.bufnum_(~buffer.bufnum)
+	)
+});
+
+~start = 0.0 + (~pitchRatios.size * ~buffer.duration);
+~gain = 6.0;
+~refFreq = 261.5;
+~buffer = ~mySFBufferDict[\trumpet_C4_1_forte_normal];
+~synthDefKeys = \eep598_monoPlayBuf;
+
+
+~formantRatios.do({ |formantRatios, i|
+	~mainScore.add(
+		~myPlayBufTransPNotes[~synthDefKeys].note(
+			starttime: ~start + (i * ~buffer.duration),
+			duration: ~buffer.duration
+		)
+		.pitchRatio_(1)
+		.formantRatio_(formantRatios)
+		.dur_(~buffer.duration)
+		.gain_(~gain)
+		.refFreq_(~refFreq)
+		.bufnum_(~buffer.bufnum)
+	)
+});
 
 ///////////////// render the main score //////////////////
 

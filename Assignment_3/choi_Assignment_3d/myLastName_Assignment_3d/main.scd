@@ -113,6 +113,53 @@ Descending ratios:
 */
 
 
+~pitchRatios   = [1, 15/16, 5/6, 3/4, 2/3, 5/8, 9/16, 1/2];
+~formantRatios = [1, 15/16, 5/6, 3/4, 2/3, 5/8, 9/16, 1/2];
+
+~start = 0.0;
+~gain = 6.0;
+~refFreq = 261.5;
+~buffer = ~mySFBufferDict[\trumpet_C4_1_forte_normal];
+~synthDefKeys = \eep598_monoPlayBuf;
+
+
+~pitchRatios.do({ |pitchRatios, i|
+	~mainScore.add(
+		~myPlayBufTransPNotes[~synthDefKeys].note(
+			starttime: ~start + (i * ~buffer.duration),
+			duration: ~buffer.duration
+		)
+		.pitchRatio_(pitchRatios)
+		.formantRatio_(1)
+		.dur_(~buffer.duration)
+		.gain_(~gain)
+		.refFreq_(~refFreq)
+		.bufnum_(~buffer.bufnum)
+	)
+});
+
+~start = 0.0 + (~pitchRatios.size * ~buffer.duration);
+~gain = 6.0;
+~refFreq = 261.5;
+~buffer = ~mySFBufferDict[\trumpet_C4_1_forte_normal];
+~synthDefKeys = \eep598_monoPlayBuf;
+
+
+~formantRatios.do({ |formantRatios, i|
+	~mainScore.add(
+		~myPlayBufTransPNotes[~synthDefKeys].note(
+			starttime: ~start + (i * ~buffer.duration),
+			duration: ~buffer.duration
+		)
+		.pitchRatio_(1)
+		.formantRatio_(formantRatios)
+		.dur_(~buffer.duration)
+		.gain_(~gain)
+		.refFreq_(~refFreq)
+		.bufnum_(~buffer.bufnum)
+	)
+});
+
 
 
 ///////////////// render the main score //////////////////
